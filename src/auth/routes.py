@@ -1,14 +1,14 @@
 from fastapi import status, APIRouter, Depends
 from fastapi.responses import JSONResponse
 from .schemas import *
-from src.config import version, Config
+from src.utils.config import version, Config
 from .service import UserService
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db import db
 from datetime import datetime
 from .utils import create_access_token, decode_url_safe_token, Hash
 from src.db import redis
-from src.errors import UserNotFound, NewPasswordsException, PasswordResetRequestTimeout
+from src.utils.errors import UserNotFound, NewPasswordsException, PasswordResetRequestTimeout
 from datetime import datetime, timedelta
 
 from .dependencies import (
@@ -18,7 +18,7 @@ from .dependencies import (
     get_current_user,
 )
 
-from src.errors import InvalidToken
+from src.utils.errors import InvalidToken
 
 router = APIRouter(
     prefix=f"/api/{version}/auth",
@@ -211,3 +211,15 @@ async def reset_password(
         content={"message": "Error occured during password reset."},
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+
+
+# @router.get('/top_10')
+# async def get_top_ten():
+#     import httpx
+#     url = "https://lichess.org/api/player"
+#     async with httpx.AsyncClient() as client:
+#         response = await client.get(url)
+#         if response.status_code == 200:
+#             return {"data": response.json()}
+#         else:
+#             return {"error:" f"Failed to fetch data: {response.status_code}"}

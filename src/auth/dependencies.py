@@ -10,7 +10,7 @@ from src.db.redis import token_in_blocklist
 from .service import UserService
 from .utils import *
 
-from src.errors import *
+from src.utils.errors import *
 
 service = UserService()
 

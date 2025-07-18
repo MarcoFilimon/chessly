@@ -3,9 +3,10 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
+import alembic_postgresql_enum
 from alembic import context
 # https://www.youtube.com/watch?v=jPTJ0i1JM3I&list=PLEt8Tae2spYnHy378vMlPH--87cfeh33P&index=7
-from src.db.models import User
+from src.db.models import *
 from sqlmodel import SQLModel
 from src.config import Config
 

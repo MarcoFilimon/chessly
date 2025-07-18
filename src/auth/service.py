@@ -5,9 +5,9 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models import User
 from .schemas import UserCreate, UserLogIn, UserUpdate, PasswordResetRequest
 from .utils import *
-from src.config import Config
-from src.errors import *
-from src.celery_tasks import send_email
+from src.utils.config import Config
+from src.utils.errors import *
+from src.utils.celery_tasks import send_email
 
 
 class UserService:

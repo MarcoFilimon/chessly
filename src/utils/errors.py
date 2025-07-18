@@ -49,13 +49,16 @@ class InvalidCredentials(Chessly):
 
 class InsufficientPermission(Chessly):
     """User does not have the neccessary permissions to perform an action."""
-
     pass
 
 
 class UserNotFound(Chessly):
     """User Not found"""
+    pass
 
+
+class TournamentNotFound(Chessly):
+    """Tournament Not found"""
     pass
 
 
@@ -71,6 +74,11 @@ class NewPasswordsException(Exception):
 
 class PasswordResetRequestTimeout(Exception):
     """Password reset request has timed out."""
+    pass
+
+
+class TournamentAlreadyExists(Exception):
+    """Tournament with this name already exists."""
     pass
 
 
@@ -106,6 +114,16 @@ def register_all_errors(app: FastAPI):
             initial_detail={
                 "message": "User not found.",
                 "error_code": "user_not_found",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        TournamentNotFound,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "Tournament not found.",
+                "error_code": "tournament_not_found`",
             },
         ),
     )
@@ -206,6 +224,17 @@ def register_all_errors(app: FastAPI):
                 "message": "Password request has timed out.",
                 "resolution":"Please request a password request again.",
                 "error_code": "password_request_timeout"
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        TournamentAlreadyExists,
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "message": "Tournament with this name already exists.",
+                "error_code": "tournament_name_not_unique",
             },
         ),
     )

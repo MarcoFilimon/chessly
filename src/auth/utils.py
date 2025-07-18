@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 import jwt
-from src.config import Config
+from src.utils.config import Config
 from datetime import datetime, timedelta
 import logging
 import uuid

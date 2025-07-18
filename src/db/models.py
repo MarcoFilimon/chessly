@@ -1,6 +1,9 @@
 from sqlmodel import SQLModel, Field, Column, Relationship
 import sqlalchemy.dialects.postgresql as pg
+import sqlalchemy as sa
 from datetime import datetime, date
+from src.utils.enums import TimeControl
+
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
@@ -20,3 +23,45 @@ class User(SQLModel, table=True):
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
+
+
+class Tournament(SQLModel, table=True):
+    __tablename__ = "tournaments"
+
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(unique=True, index=True)
+    federation: str
+    time_control: TimeControl = Field(
+        default=None,
+        sa_column=sa.Column(
+            sa.Enum(TimeControl, name="timecontrol", native_enum=False),
+            nullable=True
+        )
+    )
+    start_date: date
+    end_date: date
+
+    players: list["Players"] = Relationship(
+        back_populates="tournament", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
+    )
+
+    def __repr__(self) -> str:
+        return f"<Tournament {self.name}>"
+
+
+class Players(SQLModel, table=True):
+    __tablename__ = "players"
+
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(unique=True, index=True)
+    rating: int = Field(ge=1, le=4000)
+    age: int = Field(ge=1, le=125)
+    country: str
+    title: str
+
+    tournament_id: int | None = Field(
+        default=None, foreign_key="tournaments.id", nullable=False, ondelete="CASCADE"
+    )
+    tournament: Tournament = Relationship(
+        back_populates="players", sa_relationship_kwargs={"lazy": "selectin"}
+    )
