@@ -95,7 +95,7 @@ async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer(
 
 @router.get('/me', response_model=User)
 async def get_current_user(
-    user: User = Depends(get_current_user) # get_current_user from .dependencies.py
+    user: User = Depends(get_current_user)
 ):
     '''
     Returns current logged in user.

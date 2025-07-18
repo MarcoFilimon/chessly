@@ -3,7 +3,7 @@ from asgiref.sync import async_to_sync
 from .mail import create_message, mail
 
 c_app = Celery()
-c_app.config_from_object("src.config")
+c_app.config_from_object("src.utils.config")
 
 
 @c_app.task()

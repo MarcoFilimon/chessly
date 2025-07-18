@@ -20,6 +20,10 @@ class User(SQLModel, table=True):
     is_verified: bool = Field(default=False)
     created_at: datetime = Field(sa_column=Column(pg.TIMESTAMP, default=datetime.now))
 
+    tournaments: list["Tournament"] = Relationship(
+        back_populates="manager", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
+    )
+
 
     def __repr__(self) -> str:
         return f"<User {self.username}>"
@@ -41,7 +45,18 @@ class Tournament(SQLModel, table=True):
     start_date: date
     end_date: date
 
-    players: list["Players"] = Relationship(
+    # ------------------ User relationship -----------------
+
+    manager_id: int | None = Field(
+        default=None, foreign_key="users.id", nullable=False, ondelete="CASCADE"
+    )
+    manager: User = Relationship(
+        back_populates="tournaments", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    # ------------------ Player relationship -----------------
+
+    players: list["Player"] = Relationship(
         back_populates="tournament", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
     )
 
@@ -49,7 +64,7 @@ class Tournament(SQLModel, table=True):
         return f"<Tournament {self.name}>"
 
 
-class Players(SQLModel, table=True):
+class Player(SQLModel, table=True):
     __tablename__ = "players"
 
     id: int | None = Field(default=None, primary_key=True)
@@ -58,6 +73,8 @@ class Players(SQLModel, table=True):
     age: int = Field(ge=1, le=125)
     country: str
     title: str
+
+    # -------------- Tournament relationship
 
     tournament_id: int | None = Field(
         default=None, foreign_key="tournaments.id", nullable=False, ondelete="CASCADE"

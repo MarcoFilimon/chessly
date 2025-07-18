@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
-# from src.db.models import Bracket
+from src.db.models import Tournament
 
 class UserBase(BaseModel):
     username: str = Field(min_length=3, max_length=10)
@@ -22,7 +22,7 @@ class UserUpdate(BaseModel):
 
 class User(UserBase):
     id: int
-    # books: list[Book] | None = None
+    # tournaments: list[Tournament] | None = None
     is_verified: bool
     created_at: datetime
 

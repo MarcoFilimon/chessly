@@ -62,6 +62,16 @@ class TournamentNotFound(Chessly):
     pass
 
 
+class PlayerNotFound(Chessly):
+    """Tournament Not found"""
+    pass
+
+
+class PlayerAlreadyExists(Chessly):
+    """Tournament Not found"""
+    pass
+
+
 class AccountNotVerified(Exception):
     """Account not yet verified"""
     pass
@@ -124,6 +134,26 @@ def register_all_errors(app: FastAPI):
             initial_detail={
                 "message": "Tournament not found.",
                 "error_code": "tournament_not_found`",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        PlayerNotFound,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "Player not found.",
+                "error_code": "player_not_found`",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        PlayerAlreadyExists,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "Player already exists.",
+                "error_code": "player_already_exists`",
             },
         ),
     )

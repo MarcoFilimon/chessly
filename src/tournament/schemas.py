@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
 from src.utils.enums import TimeControl
+from src.db.models import Player
 
 
 class TournamentBase(BaseModel):
@@ -34,4 +35,4 @@ class TournamentUpdate(BaseModel):
 
 class Tournament(TournamentBase):
     id: int
-    # books: list[Book] | None = None
+    players: list[Player] | None = None
