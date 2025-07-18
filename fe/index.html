@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Tournament Maker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #f3f4f6;
+            /* bg-gray-100 */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2.5rem;
+            /* py-10 */
+        }
+
+        main {
+            width: 100%;
+            max-width: 80rem;
+            /* max-w-7xl */
+            padding-left: 1rem;
+            /* px-4 */
+            padding-right: 1rem;
+            /* px-4 */
+        }
+
+        /* Basic styling for modal to ensure it's hidden by default */
+        .modal-overlay {
+            display: none;
+            /* Hidden by default */
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            /* Shown when 'show' class is added */
+        }
+    </style>
+</head>
+
+<body>
+    <header class="w-full bg-white shadow-md py-4 mb-8">
+        <nav class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-600">Chess Tournament Maker</h1>
+            <div class="space-x-4 flex items-center">
+                <button id="homeBtn" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
+                    Home
+                </button>
+                <div id="authButtons" class="space-x-4 flex items-center">
+                    <!-- Buttons will be rendered here by JavaScript -->
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main id="app-content" class="w-full max-w-7xl px-4">
+        <!-- Content will be rendered here by JavaScript -->
+    </main>
+
+    <!-- Custom Modal Structure -->
+    <div id="modalOverlay"
+        class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <p id="modalMessage" class="text-lg text-gray-800 mb-4"></p>
+            <button id="modalCloseBtn"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                OK
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Define global variables for Firebase configuration (provided by the environment)
+        // These are needed for Firestore initialization and path construction.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        // --- DOM Elements ---
+        const appContent = document.getElementById('app-content');
+        const authButtonsContainer = document.getElementById('authButtons');
+        const homeBtn = document.getElementById('homeBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+        // --- State Variables ---
+        let db; // Firestore instance
+        let userId = null; // User ID from FastAPI
+        let userEmail = null; // User Email from FastAPI (optional, for display)
+        let currentView = 'home';
+        let tournaments = [];
+        let loadingUser = true; // To indicate if user state is being loaded
+
+        // --- FastAPI Configuration ---
+        // IMPORTANT: Set this to the base URL of your FastAPI server (e.g., 'http://localhost:8000')
+        const fastApiBaseUrl = 'http://localhost:8000';
+
+        // --- Modal Functions ---
+        function showModal(message) {
+            modalMessage.textContent = message;
+            modalOverlay.classList.add('show');
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('show');
+            modalMessage.textContent = '';
+        }
+
+        modalCloseBtn.addEventListener('click', closeModal);
+
+        // --- Firebase Firestore Initialization and User Load from localStorage ---
+        async function initializeAppAndUser() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app); // Assign to global db variable
+
+                // Attempt to load user ID and email from localStorage on initial load
+                const storedUserId = localStorage.getItem('chessTournamentUserId');
+                const storedUserEmail = localStorage.getItem('chessTournamentUserEmail');
+                if (storedUserId) {
+                    userId = storedUserId;
+                    userEmail = storedUserEmail;
+                    console.log("Loaded user from localStorage:", userId);
+                }
+                loadingUser = false; // User loading is complete
+                renderApp(); // Initial render after loading user
+
+            } catch (error) {
+                console.error("Failed to initialize Firebase Firestore:", error);
+                showModal(`Failed to initialize Firebase Firestore: ${error.message}`);
+                loadingUser = false;
+                renderApp(); // Render even if initialization fails
+            }
+        }
+
+        // --- Firestore Data Listener ---
+        let unsubscribeTournaments = null; // To store the unsubscribe function
+
+        function setupFirestoreListener() {
+            if (unsubscribeTournaments) {
+                unsubscribeTournaments(); // Unsubscribe from previous listener if exists
+            }
+
+            if (!db || !userId) {
+                console.log("Firestore not ready or userId not available. Skipping data fetch.");
+                tournaments = []; // Clear tournaments if user logs out or not available
+                renderApp(); // Re-render to show empty state
+                return;
+            }
+
+            console.log(`Attempting to fetch tournaments for userId: ${userId}`);
+            const userTournamentsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/tournaments`);
+            const q = query(userTournamentsCollectionRef);
+
+            unsubscribeTournaments = onSnapshot(q, (snapshot) => {
+                tournaments = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                console.log("Fetched tournaments:", tournaments);
+                renderApp(); // Re-render when data changes
+            }, (error) => {
+                console.error("Error fetching tournaments:", error);
+                showModal(`Error fetching tournaments: ${error.message}`);
+            });
+        }
+
+        // --- Authentication Handlers (calling FastAPI) ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${fastApiBaseUrl}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    userId = data.user_id;
+                    userEmail = email;
+                    localStorage.setItem('chessTournamentUserId', userId);
+                    localStorage.setItem('chessTournamentUserEmail', userEmail);
+                    showModal("Logged in successfully!");
+                    currentView = 'home';
+                    renderApp(); // Re-render after login
+                    setupFirestoreListener(); // Setup listener for new user
+                } else {
+                    throw new Error(data.detail || 'Login failed');
+                }
+            } catch (error) {
+                console.error("Error logging in:", error);
+                showModal(`Login failed: ${error.message}`);
+            }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const response = await fetch(`${fastApiBaseUrl}/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    userId = data.user_id;
+                    userEmail = email;
+                    localStorage.setItem('chessTournamentUserId', userId);
+                    localStorage.setItem('chessTournamentUserEmail', userEmail);
+                    showModal("Account created and logged in successfully!");
+                    currentView = 'home';
+                    renderApp(); // Re-render after signup
+                    setupFirestoreListener(); // Setup listener for new user
+                } else {
+                    throw new Error(data.detail || 'Signup failed');
+                }
+            } catch (error) {
+                console.error("Error signing up:", error);
+                showModal(`Signup failed: ${error.message}`);
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                // Optionally, inform FastAPI about logout if it manages sessions
+                await fetch(`${fastApiBaseUrl}/logout`, { method: 'POST' });
+
+                userId = null;
+                userEmail = null;
+                localStorage.removeItem('chessTournamentUserId');
+                localStorage.removeItem('chessTournamentUserEmail');
+                tournaments = []; // Clear tournaments on logout
+                showModal("Logged out successfully!");
+                currentView = 'home';
+                renderApp(); // Re-render after logout
+                setupFirestoreListener(); // Clear listener as user is logged out
+            } catch (error) {
+                console.error("Error logging out:", error);
+                showModal(`Logout failed: ${error.message}`);
+            }
+        }
+
+        // --- Tournament Management Handlers ---
+        async function handleSubmitNewTournament(e) {
+            e.preventDefault();
+            if (!db || !userId) {
+                showModal("Database not ready or user not logged in. Please log in to create a tournament.");
+                return;
+            }
+
+            const tournamentName = document.getElementById('tournamentName').value;
+            const tournamentDate = document.getElementById('tournamentDate').value;
+            const tournamentTime = document.getElementById('tournamentTime').value;
+            const tournamentLocation = document.getElementById('tournamentLocation').value;
+            const tournamentPlayers = document.getElementById('tournamentPlayers').value;
+
+            try {
+                const playersArray = tournamentPlayers.split(',').map(p => p.trim()).filter(p => p !== '');
+                const tournamentData = {
+                    name: tournamentName,
+                    date: tournamentDate,
+                    time: tournamentTime,
+                    location: tournamentLocation,
+                    players: playersArray,
+                    createdAt: new Date().toISOString(), // Add a timestamp
+                    createdBy: userId, // Link to the user who created it
+                };
+
+                const userTournamentsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/tournaments`);
+                await addDoc(userTournamentsCollectionRef, tournamentData);
+
+                showModal("Tournament created successfully!");
+                // Clear form fields
+                document.getElementById('tournamentName').value = '';
+                document.getElementById('tournamentDate').value = '';
+                document.getElementById('tournamentTime').value = '';
+                document.getElementById('tournamentLocation').value = '';
+                document.getElementById('tournamentPlayers').value = '';
+
+                currentView = 'viewTournaments';
+                renderApp(); // Re-render to show updated list
+            } catch (error) {
+                console.error("Error adding tournament:", error);
+                showModal(`Failed to create tournament: ${error.message}`);
+            }
+        }
+
+        // --- View Rendering Functions ---
+
+        function renderHome() {
+            appContent.innerHTML = `
+                <div class="text-center p-8">
+                    <h1 class="text-4xl font-bold text-gray-800 mb-6">Welcome to Chess Tournaments!</h1>
+                    <p class="text-lg text-gray-600 mb-8">
+                        Organize and manage your chess tournaments with ease.
+                    </p>
+                    ${userId ? `
+                        <p class="text-md text-gray-700 mb-4">
+                            You are logged in as: <span class="font-semibold">${userEmail || 'User'}</span>
+                            <br/>
+                            Your User ID: <span class="font-mono text-sm break-all">${userId}</span>
+                        </p>
+                    ` : ''}
+                    <div class="flex flex-col sm:flex-row justify-center gap-4">
+                        ${userId ? `
+                            <button id="createTournamentBtnHome" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                                Create New Tournament
+                            </button>
+                        ` : `
+                            <p class="text-gray-600 text-lg">Please log in or sign up to create tournaments.</p>
+                        `}
+                        <button id="viewTournamentsBtnHome" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            View My Tournaments
+                        </button>
+                    </div>
+                </div>
+            `;
+            // Attach event listeners after rendering HTML
+            if (userId) {
+                document.getElementById('createTournamentBtnHome')?.addEventListener('click', () => { currentView = 'createTournament'; renderApp(); });
+            }
+            document.getElementById('viewTournamentsBtnHome')?.addEventListener('click', () => { currentView = 'viewTournaments'; renderApp(); });
+        }
+
+        function renderCreateTournament() {
+            appContent.innerHTML = `
+                <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Create New Tournament</h2>
+                    ${userId ? `
+                        <form id="createTournamentForm" class="space-y-6">
+                            <div>
+                                <label for="tournamentName" class="block text-gray-700 text-sm font-semibold mb-2">Tournament Name</label>
+                                <input
+                                    type="text"
+                                    id="tournamentName"
+                                    name="name"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="e.g., Grand Chess Championship"
+                                    required
+                                >
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="tournamentDate" class="block text-gray-700 text-sm font-semibold mb-2">Date</label>
+                                    <input
+                                        type="date"
+                                        id="tournamentDate"
+                                        name="date"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
+                                        required
+                                    >
+                                </div>
+                                <div>
+                                    <label for="tournamentTime" class="block text-gray-700 text-sm font-semibold mb-2">Time</label>
+                                    <input
+                                        type="time"
+                                        id="tournamentTime"
+                                        name="time"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
+                                        required
+                                    >
+                                </div>
+                            </div>
+                            <div>
+                                <label for="tournamentLocation" class="block text-gray-700 text-sm font-semibold mb-2">Location</label>
+                                <input
+                                    type="text"
+                                    id="tournamentLocation"
+                                    name="location"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
+                                    placeholder="e.g., Online, Local Chess Club"
+                                    required
+                                >
+                            </div>
+                            <div>
+                                <label for="tournamentPlayers" class="block text-gray-700 text-sm font-semibold mb-2">Players (comma-separated names)</label>
+                                <textarea
+                                    id="tournamentPlayers"
+                                    name="players"
+                                    rows="4"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
+                                    placeholder="e.g., Magnus Carlsen, Hikaru Nakamura, Fabiano Caruana"
+                                    required
+                                ></textarea>
+                            </div>
+                            <div class="flex justify-end gap-4">
+                                <button type="button" id="cancelCreateBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                                    Create Tournament
+                                </button>
+                            </div>
+                        </form>
+                    ` : `
+                        <p class="text-center text-gray-600 text-lg">Please log in to create a new tournament.</p>
+                    `}
+                </div>
+            `;
+            document.getElementById('cancelCreateBtn')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
+            document.getElementById('createTournamentForm')?.addEventListener('submit', handleSubmitNewTournament);
+        }
+
+        function renderViewTournaments() {
+            let tournamentsHtml = '';
+            if (loadingUser) {
+                tournamentsHtml = `<p class="text-center text-gray-600">Loading user session...</p>`;
+            } else if (!userId) {
+                tournamentsHtml = `<p class="text-center text-gray-600">Please log in to view your tournaments.</p>`;
+            } else if (tournaments.length === 0) {
+                tournamentsHtml = `<p class="text-center text-gray-600">No tournaments created yet. Why not create one?</p>`;
+            } else {
+                tournamentsHtml = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${tournaments.map(tournament => `
+                            <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
+                                <h3 class="text-xl font-semibold text-gray-800 mb-2">${tournament.name}</h3>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Date:</strong> ${tournament.date}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Time:</strong> ${tournament.time}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
+                                <div class="mt-3">
+                                    <h4 class="text-md font-medium text-gray-700 mb-1">Players:</h4>
+                                    <ul class="list-disc list-inside text-gray-600 text-sm">
+                                        ${tournament.players.map(player => `<li>${player}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <p class="text-gray-500 text-xs mt-2">Created by: ${tournament.createdBy}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            appContent.innerHTML = `
+                <div class="p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">My Tournaments</h2>
+                    ${tournamentsHtml}
+                    <div class="text-center mt-8">
+                        <button id="backToHomeBtnView" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                            Back to Home
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('backToHomeBtnView')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
+        }
+
+        function renderLogin() {
+            appContent.innerHTML = `
+                <div class="p-8 max-w-md mx-auto bg-white rounded-lg shadow-lg">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Login</h2>
+                    <form id="loginForm" class="space-y-6">
+                        <div>
+                            <label for="loginEmail" class="block text-gray-700 text-sm font-semibold mb-2">Email</label>
+                            <input
+                                type="email"
+                                id="loginEmail"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="your@email.com"
+                                required
+                            >
+                        </div>
+                        <div>
+                            <label for="loginPassword" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                            <input
+                                type="password"
+                                id="loginPassword"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="********"
+                                required
+                            >
+                        </div>
+                        <div class="flex justify-end gap-4">
+                            <button type="button" id="cancelLoginBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                                Login
+                            </button>
+                        </div>
+                    </form>
+                    <p class="text-center text-gray-600 mt-6">
+                        Don't have an account?
+                        <button id="goToSignupBtn" class="text-blue-600 hover:underline font-semibold">
+                            Sign Up
+                        </button>
+                    </p>
+                </div>
+            `;
+            document.getElementById('cancelLoginBtn')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
+            document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+            document.getElementById('goToSignupBtn')?.addEventListener('click', () => { currentView = 'signup'; renderApp(); });
+        }
+
+        function renderSignup() {
+            appContent.innerHTML = `
+                <div class="p-8 max-w-md mx-auto bg-white rounded-lg shadow-lg">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Sign Up</h2>
+                    <form id="signupForm" class="space-y-6">
+                        <div>
+                            <label for="signupEmail" class="block text-gray-700 text-sm font-semibold mb-2">Email</label>
+                            <input
+                                type="email"
+                                id="signupEmail"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="your@email.com"
+                                required
+                            >
+                        </div>
+                        <div>
+                            <label for="signupPassword" class="block text-gray-700 text-sm font-semibold mb-2">Password</label>
+                            <input
+                                type="password"
+                                id="signupPassword"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="********"
+                                required
+                            >
+                        </div>
+                        <div class="flex justify-end gap-4">
+                            <button type="button" id="cancelSignupBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                                Sign Up
+                            </button>
+                        </div>
+                    </form>
+                    <p class="text-center text-gray-600 mt-6">
+                        Already have an account?
+                        <button id="goToLoginBtn" class="text-blue-600 hover:underline font-semibold">
+                            Login
+                        </button>
+                    </p>
+                </div>
+            `;
+            document.getElementById('cancelSignupBtn')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
+            document.getElementById('signupForm')?.addEventListener('submit', handleSignup);
+            document.getElementById('goToLoginBtn')?.addEventListener('click', () => { currentView = 'login'; renderApp(); });
+        }
+
+        // --- Main Render Function ---
+        function renderApp() {
+            // Render header authentication buttons
+            if (userId) {
+                authButtonsContainer.innerHTML = `
+                    <button id="createBtnHeader" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
+                        Create
+                    </button>
+                    <button id="viewBtnHeader" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
+                        View My Tournaments
+                    </button>
+                    <span class="text-gray-600 text-sm hidden md:inline">
+                        Welcome, ${userEmail || 'User'}
+                    </span>
+                    <button id="logoutBtnHeader" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-lg shadow-sm transition duration-300">
+                        Logout
+                    </button>
+                `;
+                document.getElementById('createBtnHeader')?.addEventListener('click', () => { currentView = 'createTournament'; renderApp(); });
+                document.getElementById('viewBtnHeader')?.addEventListener('click', () => { currentView = 'viewTournaments'; renderApp(); });
+                document.getElementById('logoutBtnHeader')?.addEventListener('click', handleLogout);
+            } else {
+                authButtonsContainer.innerHTML = `
+                    <button id="loginBtnHeader" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-lg shadow-sm transition duration-300">
+                        Login
+                    </button>
+                    <button id="signupBtnHeader" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg shadow-sm transition duration-300">
+                        Sign Up
+                    </button>
+                `;
+                document.getElementById('loginBtnHeader')?.addEventListener('click', () => { currentView = 'login'; renderApp(); });
+                document.getElementById('signupBtnHeader')?.addEventListener('click', () => { currentView = 'signup'; renderApp(); });
+            }
+
+            // Render main content based on currentView
+            switch (currentView) {
+                case 'home':
+                    renderHome();
+                    break;
+                case 'createTournament':
+                    renderCreateTournament();
+                    break;
+                case 'viewTournaments':
+                    renderViewTournaments();
+                    break;
+                case 'login':
+                    renderLogin();
+                    break;
+                case 'signup':
+                    renderSignup();
+                    break;
+                default:
+                    renderHome();
+                    break;
+            }
+        }
+
+        // --- Initial Setup on Window Load ---
+        window.onload = function () {
+            initializeAppAndUser(); // Initialize Firebase and load user from localStorage
+            setupFirestoreListener(); // Set up Firestore listener (will only fetch if userId is present)
+
+            // Attach global event listener for Home button
+            homeBtn.addEventListener('click', () => { currentView = 'home'; renderApp(); });
+        };
+
+    </script>
+</body>
+
+</html>
