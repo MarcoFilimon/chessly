@@ -1,0 +1,23 @@
+body {
+  font-family: "Inter", sans-serif; /* This font is now loaded via <link> in HTML */
+  margin: 0;
+  background-color: #f3f4f6; /* bg-gray-100 */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2.5rem; /* py-10 */
+}
+main {
+  width: 100%;
+  max-width: 80rem; /* max-w-7xl */
+  padding-left: 1rem; /* px-4 */
+  padding-right: 1rem; /* px-4 */
+}
+/* Basic styling for modal to ensure it's hidden by default */
+.modal-overlay {
+  display: none; /* Hidden by default */
+}
+.modal-overlay.show {
+  display: flex; /* Shown when 'show' class is added */
+}
