@@ -1,33 +1,3 @@
-// Firebase Firestore imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-
-import { getFirestore, collection, addDoc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-// Define global variables for Firebase configuration (provided by the environment)
-// These are needed for Firestore initialization and path construction.
-// In a real setup, these might be loaded from a config file or environment variables.
-declare const __app_id: string | undefined;
-
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = {
-
-  apiKey: "AIzaSyAgkDElUxkoUwrYRme8VC2S8SAi4DueoHU",
-
-  authDomain: "chey-c6c68.firebaseapp.com",
-
-  projectId: "chey-c6c68",
-
-  storageBucket: "chey-c6c68.firebasestorage.app",
-
-  messagingSenderId: "277812666639",
-
-  appId: "1:277812666639:web:fee5df5dc30ff7a353de7a",
-
-  measurementId: "G-1WQCMFPR9P"
-
-};
- {};
-
 // --- DOM Elements ---
 const appContent = document.getElementById('app-content') as HTMLElement;
 const authButtonsContainer = document.getElementById('authButtons') as HTMLElement;
@@ -37,14 +7,13 @@ const modalMessage = document.getElementById('modalMessage') as HTMLElement;
 const modalCloseBtn = document.getElementById('modalCloseBtn') as HTMLButtonElement;
 
 // --- State Variables ---
-let db: any; // Firestore instance
 let userId: string | null = null; // User ID from FastAPI
 let userUsername: string | null = null;
+let userEmail: string | null = null;
 let refresh_token: string | null = null;
 let token: string | null = null;
 let currentView: string = 'home';
 let tournaments: any[] = [];
-let loadingUser: boolean = true; // To indicate if user state is being loaded
 
 // --- FastAPI Configuration ---
 // IMPORTANT: Set this to the base URL of your FastAPI server (e.g., 'http://localhost:8000')
@@ -63,63 +32,6 @@ function closeModal(): void {
 
 modalCloseBtn.addEventListener('click', closeModal);
 
-// --- Firebase Firestore Initialization and User Load from localStorage ---
-async function initializeAppAndUser(): Promise<void> {
-    try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app); // Assign to global db variable
-
-        // Attempt to load user ID and email from localStorage on initial load
-        const storedUserId = localStorage.getItem('chessTournamentUserId');
-        const storedUserEmail = localStorage.getItem('chessTournamentUserEmail');
-        if (storedUserId && storedUserEmail) {
-            userId = storedUserId;
-            userEmail = storedUserEmail;
-            console.log("Loaded user from localStorage:", userId);
-        }
-        loadingUser = false; // User loading is complete
-        setupFirestoreListener(); // Set up Firestore listener (will only fetch if userId is present)
-        renderApp(); // Initial render after loading user
-
-    } catch (error: any) {
-        console.error("Failed to initialize Firebase Firestore:", error);
-        showModal(`Failed to initialize Firebase Firestore: ${error.message}`);
-        loadingUser = false;
-        renderApp(); // Render even if initialization fails
-    }
-}
-
-// --- Firestore Data Listener ---
-let unsubscribeTournaments: (() => void) | null = null; // To store the unsubscribe function
-
-function setupFirestoreListener(): void {
-    if (unsubscribeTournaments) {
-        unsubscribeTournaments(); // Unsubscribe from previous listener if exists
-    }
-
-    if (!db || !userId) {
-        console.log("Firestore not ready or userId not available. Skipping data fetch.");
-        tournaments = []; // Clear tournaments if user logs out or not available
-        renderApp(); // Re-render to show empty state
-        return;
-    }
-
-    console.log(`Attempting to fetch tournaments for userId: ${userId}`);
-    const userTournamentsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/tournaments`);
-    const q = query(userTournamentsCollectionRef);
-
-    unsubscribeTournaments = onSnapshot(q, (snapshot) => {
-        tournaments = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        console.log("Fetched tournaments:", tournaments);
-        renderApp(); // Re-render when data changes
-    }, (error: any) => {
-        console.error("Error fetching tournaments:", error);
-        showModal(`Error fetching tournaments: ${error.message}`);
-    });
-}
 
 // --- Authentication Handlers (calling FastAPI) ---
 async function handleLogin(e: Event): Promise<void> {
@@ -143,14 +55,15 @@ async function handleLogin(e: Event): Promise<void> {
             refresh_token = data.refresh_token
             token = data.token
             userUsername = data.user.username
+            userEmail = data.user.email
             localStorage.setItem('chessTournamentUserId', userId as string);
             localStorage.setItem('chessTournamentUsername', userUsername as string);
+            localStorage.setItem('chessTournamentEmail', userEmail as string);
             localStorage.setItem('chessTournamentRefreshToken', refresh_token as string);
             localStorage.setItem('chessTournamentToken', token as string);
             // showModal(data.message);
             currentView = 'home';
             renderApp(); // Re-render after login
-            setupFirestoreListener(); // Setup listener for new user
         } else {
             throw new Error(data.message || 'Login failed');
         }
@@ -190,13 +103,9 @@ async function handleSignup(e: Event): Promise<void> {
         const data = await response.json();
 
         if (response.ok) {
-            // userId = data.user.id;
-            // userEmail = data.user.email;
-            // userUsername = data.user.username;
             showModal(data.message);
             currentView = 'home';
             renderApp();
-            setupFirestoreListener();
         } else {
             throw new Error(data.message || 'Signup failed');
         }
@@ -212,67 +121,90 @@ async function handleLogout(): Promise<void> {
         await fetch(`${fastApiBaseUrl}/auth/logout`, { method: 'POST' });
 
         userId = null;
-        userEmail = null;
         localStorage.removeItem('chessTournamentUserId');
         localStorage.removeItem('chessTournamentUsername');
         localStorage.removeItem('chessTournamentRefreshToken');
         localStorage.removeItem('chessTournamentToken');
         tournaments = []; // Clear tournaments on logout
-        showModal("Logged out successfully!");
         currentView = 'home';
         renderApp(); // Re-render after logout
-        setupFirestoreListener(); // Clear listener as user is logged out
     } catch (error: any) {
         console.error("Error logging out:", error);
         showModal(`Logout failed: ${error.message}`);
     }
 }
 
+async function createTournament(payload: any, token: string): Promise<any> {
+    const response = await fetch(`${fastApiBaseUrl}/tournament`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to create tournament');
+    }
+    return await response.json();
+}
+
+
+async function fetchTournaments(token: string): Promise<any[]> {
+    const response = await fetch(`${fastApiBaseUrl}/tournament`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch tournaments');
+    }
+    return await response.json();
+}
+
 // --- Tournament Management Handlers ---
 async function handleSubmitNewTournament(e: Event): Promise<void> {
     e.preventDefault();
-    if (!db || !userId) {
-        showModal("Database not ready or user not logged in. Please log in to create a tournament.");
+    if (!userId) {
+        showModal("User not logged in. Please log in to create a tournament.");
         return;
     }
 
     const tournamentNameInput = document.getElementById('tournamentName') as HTMLInputElement;
-    const tournamentDateInput = document.getElementById('tournamentDate') as HTMLInputElement;
-    const tournamentTimeInput = document.getElementById('tournamentTime') as HTMLInputElement;
+    const tournamentStartDateInput = document.getElementById('tournamentStartDate') as HTMLInputElement;
+    const tournamentEndDateInput = document.getElementById('tournamentEndDate') as HTMLInputElement;
     const tournamentLocationInput = document.getElementById('tournamentLocation') as HTMLInputElement;
-    const tournamentPlayersInput = document.getElementById('tournamentPlayers') as HTMLTextAreaElement;
+    const tournamentTimeControl = document.getElementById('tournamentTimeControl') as HTMLInputElement;
 
     const tournamentName = tournamentNameInput.value;
-    const tournamentDate = tournamentDateInput.value;
-    const tournamentTime = tournamentTimeInput.value;
+    const tournamentStartDate = tournamentStartDateInput.value;
+    const tournamentEndDate = tournamentEndDateInput.value;
     const tournamentLocation = tournamentLocationInput.value;
-    const tournamentPlayers = tournamentPlayersInput.value;
+    const tournamentTC = tournamentTimeControl.value;
 
-    try {
-        const playersArray = tournamentPlayers.split(',').map(p => p.trim()).filter(p => p !== '');
-        const tournamentData = {
-            name: tournamentName,
-            date: tournamentDate,
-            time: tournamentTime,
-            location: tournamentLocation,
-            players: playersArray,
-            createdAt: new Date().toISOString(), // Add a timestamp
-            createdBy: userId, // Link to the user who created it
-        };
+   try {
+    const tournamentData = {
+        name: tournamentName,
+        start_date: tournamentStartDate,
+        end_date: tournamentEndDate, // or use a separate end date field if you have one
+        location: tournamentLocation, // or use a separate field if you have one
+        time_control: tournamentTC // adjust as needed for your backend
+    };
 
-        const userTournamentsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/tournaments`);
-        await addDoc(userTournamentsCollectionRef, tournamentData);
+    await createTournament(tournamentData, token!);
 
-        showModal("Tournament created successfully!");
-        // Clear form fields
-        tournamentNameInput.value = '';
-        tournamentDateInput.value = '';
-        tournamentTimeInput.value = '';
-        tournamentLocationInput.value = '';
-        tournamentPlayersInput.value = '';
+    showModal("Tournament created successfully!");
+    // Clear form fields
+    tournamentNameInput.value = '';
+    tournamentStartDateInput.value = '';
+    tournamentEndDateInput.value = '';
+    tournamentLocationInput.value = '';
+    tournamentTimeControl.value = '';
 
-        currentView = 'viewTournaments';
-        renderApp(); // Re-render to show updated list
+
+    currentView = 'viewTournaments';
+    renderApp();
     } catch (error: any) {
         console.error("Error adding tournament:", error);
         showModal(`Failed to create tournament: ${error.message}`);
@@ -293,12 +225,12 @@ function renderHome(): void {
                     <button id="createTournamentBtnHome" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                         Create New Tournament
                     </button>
+                    <button id="viewTournamentsBtnHome" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        View My Tournaments
+                    </button>
                 ` : `
                     <p class="text-gray-600 text-lg">Please log in or sign up to create tournaments.</p>
                 `}
-                <button id="viewTournamentsBtnHome" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                    View My Tournaments
-                </button>
             </div>
         </div>
     `;
@@ -328,21 +260,21 @@ function renderCreateTournament(): void {
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                            <label for="tournamentDate" class="block text-gray-700 text-sm font-semibold mb-2">Date</label>
+                            <label for="tournamentStartDate" class="block text-gray-700 text-sm font-semibold mb-2">Start Date</label>
                             <input
                                 type="date"
-                                id="tournamentDate"
+                                id="tournamentStartDate"
                                 name="date"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
                                 required
                             >
                         </div>
                         <div>
-                            <label for="tournamentTime" class="block text-gray-700 text-sm font-semibold mb-2">Time</label>
+                            <label for="tournamentEndDate" class="block text-gray-700 text-sm font-semibold mb-2">End Date</label>
                             <input
-                                type="time"
-                                id="tournamentTime"
-                                name="time"
+                                type="date"
+                                id="tournamentEndDate"
+                                name="date"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
                                 required
                             >
@@ -360,15 +292,15 @@ function renderCreateTournament(): void {
                         >
                     </div>
                     <div>
-                        <label for="tournamentPlayers" class="block text-gray-700 text-sm font-semibold mb-2">Players (comma-separated names)</label>
-                        <textarea
-                            id="tournamentPlayers"
-                            name="players"
-                            rows="4"
+                        <label for="tournamentTimeControl" class="block text-gray-700 text-sm font-semibold mb-2">Time Control</label>
+                        <input
+                            type="text"
+                            id="tournamentTimeControl"
+                            name="location"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
-                            placeholder="e.g., Magnus Carlsen, Hikaru Nakamura, Fabiano Caruana"
+                            placeholder="e.g., Online, Local Chess Club"
                             required
-                        ></textarea>
+                        >
                     </div>
                     <div class="flex justify-end gap-4">
                         <button type="button" id="cancelCreateBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
@@ -392,9 +324,7 @@ function renderViewTournaments(): void {
     let tournamentsHtml = '';
     const userTournaments = tournaments.filter(t => t.createdBy === userId); // Filter by current user
 
-    if (loadingUser) {
-        tournamentsHtml = `<p class="text-center text-gray-600">Loading user session...</p>`;
-    } else if (!userId) {
+    if (!userId) {
         tournamentsHtml = `<p class="text-center text-gray-600">Please log in to view your tournaments.</p>`;
     } else if (userTournaments.length === 0) {
         tournamentsHtml = `<p class="text-center text-gray-600">No tournaments created yet. Why not create one?</p>`;
@@ -615,8 +545,7 @@ function renderApp(): void {
 
 // --- Initial Setup on Window Load ---
 window.onload = function() {
-    initializeAppAndUser(); // Initialize Firebase and load user from localStorage
-
+    renderApp();
     // Attach global event listener for Home button
     homeBtn.addEventListener('click', () => { currentView = 'home'; renderApp(); });
 };
