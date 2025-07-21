@@ -6,3 +6,9 @@ class TimeControl(Enum):
     BLITZ = "Blitz"
     RAPID = "Rapid"
     CLASICCAL = "Classical"
+
+@unique
+class Status(Enum):
+    NOT_STARTED = "Not Started"
+    ONGOING = "Ongoing"
+    FINISHED = "Finished"
