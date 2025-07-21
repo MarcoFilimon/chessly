@@ -46,7 +46,7 @@ class UserService:
 
     async def register_user(self, payload: UserCreate, session: AsyncSession):
         new_user = payload.model_dump()
-        check_user = await self.get_user_by_name(payload.username, session)
+        check_user = await self.get_user_by_email(payload.email, session)
         if check_user:
             raise UserAlreadyExists()
         user = User(**new_user)
@@ -71,6 +71,7 @@ class UserService:
                 "message": "Login successful.",
                 "user": {
                     "username": user.username,
+                    "email": user.email,
                     "id": user.id,
                     "is_verified": user.is_verified
                 },

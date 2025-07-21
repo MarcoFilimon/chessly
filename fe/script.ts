@@ -14,6 +14,9 @@ let refresh_token: string | null = null;
 let token: string | null = null;
 let currentView: string = 'home';
 let tournaments: any[] = [];
+let currentTournament: any = null;
+
+let nbOfPlayers: number | null = null;
 
 // --- FastAPI Configuration ---
 // IMPORTANT: Set this to the base URL of your FastAPI server (e.g., 'http://localhost:8000')
@@ -145,7 +148,7 @@ async function createTournament(payload: any, token: string): Promise<any> {
     });
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || 'Failed to create tournament');
+        throw new Error(error.message || 'Failed to create tournament');
     }
     return await response.json();
 }
@@ -158,7 +161,9 @@ async function fetchTournaments(token: string): Promise<any[]> {
         }
     });
     if (!response.ok) {
-        throw new Error('Failed to fetch tournaments');
+        const error = await response.json();
+        // Use backend's detail field if present
+        throw new Error(error.detail || error.message || 'Failed to fetch tournaments');
     }
     return await response.json();
 }
@@ -196,17 +201,17 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
 
     showModal("Tournament created successfully!");
     // Clear form fields
-    tournamentNameInput.value = '';
-    tournamentStartDateInput.value = '';
-    tournamentEndDateInput.value = '';
-    tournamentLocationInput.value = '';
-    tournamentTimeControl.value = '';
+    // tournamentNameInput.value = '';
+    // tournamentStartDateInput.value = '';
+    // tournamentEndDateInput.value = '';
+    // tournamentLocationInput.value = '';
+    // tournamentTimeControl.value = '';
 
 
     currentView = 'viewTournaments';
     renderApp();
     } catch (error: any) {
-        console.error("Error adding tournament:", error);
+        // console.error("Error adding tournament:", error);
         showModal(`Failed to create tournament: ${error.message}`);
     }
 }
@@ -320,34 +325,37 @@ function renderCreateTournament(): void {
     document.getElementById('createTournamentForm')?.addEventListener('submit', handleSubmitNewTournament);
 }
 
-function renderViewTournaments(): void {
+async function renderViewTournaments(): Promise<void> {
     let tournamentsHtml = '';
-    const userTournaments = tournaments.filter(t => t.createdBy === userId); // Filter by current user
 
-    if (!userId) {
+    if (!userId || !token) {
         tournamentsHtml = `<p class="text-center text-gray-600">Please log in to view your tournaments.</p>`;
-    } else if (userTournaments.length === 0) {
-        tournamentsHtml = `<p class="text-center text-gray-600">No tournaments created yet. Why not create one?</p>`;
     } else {
-        tournamentsHtml = `
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${userTournaments.map(tournament => `
-                    <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-2">${tournament.name}</h3>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Date:</strong> ${tournament.date}</p>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Time:</strong> ${tournament.time}</p>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
-                        <div class="mt-3">
-                            <h4 class="text-md font-medium text-gray-700 mb-1">Players:</h4>
-                            <ul class="list-disc list-inside text-gray-600 text-sm">
-                                ${tournament.players.map((player: string) => `<li>${player}</li>`).join('')}
-                            </ul>
-                        </div>
-                        <p class="text-gray-500 text-xs mt-2">Created by: ${tournament.createdBy}</p>
+        try {
+            // Fetch tournaments from backend
+            tournaments = await fetchTournaments(token);
+
+            if (tournaments.length === 0) {
+                tournamentsHtml = `<p class="text-center text-gray-600">No tournaments created yet. Why not create one?</p>`;
+            } else {
+                tournamentsHtml = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${tournaments.map(tournament => `
+                            <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 cursor-pointer tournament-card"
+                            data-tournament-id="${tournament.id}">
+                                <h3 class="text-xl font-semibold text-gray-800 mb-2">${tournament.name}</h3>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Start:</strong> ${tournament.start_date}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>End:</strong> ${tournament.end_date}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Time Control:</strong> ${tournament.time_control}</p>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('')}
-            </div>
-        `;
+                `;
+            }
+        } catch (error: any) {
+            tournamentsHtml = `<p class="text-center text-red-600">Failed to load tournaments: ${error.message}</p>`;
+        }
     }
 
     appContent.innerHTML = `
@@ -362,6 +370,80 @@ function renderViewTournaments(): void {
         </div>
     `;
     document.getElementById('backToHomeBtnView')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
+
+    // After rendering tournamentsHtml
+    document.querySelectorAll('.tournament-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const tournamentId = (card as HTMLElement).getAttribute('data-tournament-id');
+            currentTournament = tournaments.find(t => t.id == tournamentId);
+            currentView = 'tournamentDetail';
+            renderApp();
+        });
+    });
+}
+
+function renderTournamentDetail(): void {
+    if (!currentTournament) {
+        showModal("Tournament not found.");
+        currentView = 'viewTournaments';
+        renderApp();
+        return;
+    }
+
+    appContent.innerHTML = `
+        <div class="p-8 max-w-xl mx-auto bg-white rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">${currentTournament.name}</h2>
+            <p class="mb-2"><strong>Start:</strong> ${currentTournament.start_date}</p>
+            <p class="mb-2"><strong>End:</strong> ${currentTournament.end_date}</p>
+            <p class="mb-2"><strong>Location:</strong> ${currentTournament.location}</p>
+            <p class="mb-2"><strong>Time Control:</strong> ${currentTournament.time_control}</p>
+            <hr class="my-4"/>
+            <h3 class="text-xl font-semibold mb-2">Players</h3>
+            <ul id="playerList" class="mb-4">
+                <!-- Render players here -->
+            </ul>
+            <form id="addPlayerForm" class="flex gap-2 mb-4">
+                <input type="text" id="playerNameInput" class="flex-1 px-2 py-1 border rounded" placeholder="Name" required>
+                <input type="text" id="playerRatingInput" class="flex-1 px-2 py-1 border rounded" placeholder="Rating" required>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Add Player</button>
+            </form>
+            <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                Back to Tournaments
+            </button>
+        </div>
+    `;
+
+    // Render players (if any)
+    const playerList = document.getElementById('playerList');
+    if (playerList) {
+        playerList.innerHTML = (currentTournament.players || [])
+            .map((player: string) => `<li>${player}</li>`)
+            .join('');
+    }
+
+    // Add player handler
+    document.getElementById('addPlayerForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const playerNameInput = document.getElementById('playerNameInput') as HTMLInputElement;
+        const playerRatingInput = document.getElementById('playerRatingInput') as HTMLInputElement;
+        const playerName = playerNameInput.value.trim();
+        const playerRating = playerRatingInput.value.trim();
+        if (!playerName || !playerRating) return;
+
+        // TODO: Send API request to add player to tournament
+        // Example:
+        // await addPlayerToTournament(currentTournament.id, playerName, token!);
+
+        // For now, just update locally:
+        if (!currentTournament.players) currentTournament.players = [];
+        currentTournament.players.push(playerName);
+        renderTournamentDetail();
+    });
+
+    document.getElementById('backToTournamentsBtn')?.addEventListener('click', () => {
+        currentView = 'viewTournaments';
+        renderApp();
+    });
 }
 
 function renderLogin(): void {
@@ -497,9 +579,9 @@ function renderApp(): void {
             <button id="viewBtnHeader" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
                 View My Tournaments
             </button>
-            <span class="text-gray-600 text-sm hidden md:inline">
+            <button id="viewUser" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
                 ${userUsername || 'User'}
-            </span>
+            </button>
             <button id="logoutBtnHeader" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-lg shadow-sm transition duration-300">
                 Logout
             </button>
@@ -530,6 +612,9 @@ function renderApp(): void {
             break;
         case 'viewTournaments':
             renderViewTournaments();
+            break;
+        case 'tournamentDetail':
+            renderTournamentDetail();
             break;
         case 'login':
             renderLogin();

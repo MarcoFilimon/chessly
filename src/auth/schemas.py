@@ -10,13 +10,13 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=3)
 
 
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=10)
     email: EmailStr | None = Field(default=None, min_length=5, max_length=40)
-    password: str | None = Field(default=None, min_length=8)
+    password: str | None = Field(default=None, min_length=3)
     first_name: str | None = None
     last_name: str | None = None
 
@@ -29,7 +29,7 @@ class User(UserBase):
 
 class UserLogIn(BaseModel):
     username: str = Field(min_length=3, max_length=10)
-    password: str | None = Field(min_length=8)
+    password: str | None = Field(min_length=3)
 
 
 class Emails(BaseModel):

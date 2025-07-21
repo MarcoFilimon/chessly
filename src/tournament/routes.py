@@ -60,7 +60,6 @@ async def get_user_tournaments(
     limit: int = 10,
     sort: str = "desc",
     token_details: dict = Depends(acccess_token_bearer),
-    _ : bool = Depends(full_access),
     session: AsyncSession = Depends(db.get_session)
 ) -> list[Tournament]:
     """

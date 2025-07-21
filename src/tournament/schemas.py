@@ -6,7 +6,7 @@ from src.db.models import Player
 
 class TournamentBase(BaseModel):
     name: str = Field(min_length=3, max_length=25)
-    federation: str = Field(min_length=3, max_length=25)
+    location: str = Field(min_length=3, max_length=25)
     start_date: date
     end_date: date
     time_control: TimeControl
@@ -27,7 +27,7 @@ class TournamentCreate(TournamentBase):
 
 class TournamentUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=3, max_length=10)
-    federation: str | None = Field(default=None, min_length=3, max_length=10)
+    location: str | None = Field(default=None, min_length=3, max_length=10)
     start_date: date | None = Field(default=None)
     end_date: date | None = Field(default=None)
     time_control: TimeControl | None = Field(default=None)

@@ -34,7 +34,7 @@ class Tournament(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(unique=True, index=True)
-    federation: str
+    location: str
     time_control: TimeControl = Field(
         default=None,
         sa_column=sa.Column(
@@ -78,9 +78,9 @@ class Player(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(unique=True, index=True)
     rating: int = Field(ge=1, le=4000)
-    age: int = Field(ge=1, le=125)
-    country: str
-    title: str
+    # age: int = Field(ge=1, le=125)
+    # country: str
+    # title: str
 
     # -------------- Tournament relationship
 

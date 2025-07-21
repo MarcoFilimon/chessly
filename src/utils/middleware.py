@@ -23,3 +23,17 @@ def register_middleware(app: FastAPI):
         message = f"{request.client.host}:{request.client.port} - {request.method} - {request.url.path} - {response.status_code} completed after {processing_time}s"
         print(message)
         return response
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"], # all origins can access our API
+        allow_methods=["*"], # what methods (like GET POST etc) can access our middleware
+        allow_headers=["*"],
+        allow_credentials=True,
+    )
+
+    app.add_middleware(
+        TrustedHostMiddleware,
+        # list of domains that can access the API
+        allowed_hosts=["localhost", "127.0.0.1" ,"0.0.0.0"],
+    )#
