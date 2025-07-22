@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field
 
 class PlayerBase(BaseModel):
     name: str = Field(min_length=3, max_length=25)
-    country: str = Field(min_length=3, max_length=25)
-    # rating: int
+    rating: int
+    # country: str = Field(min_length=3, max_length=25)
     # age: int
     # title: str
 

@@ -18,6 +18,11 @@ class PlayerService:
             raise PlayerNotFound()
         return player
 
+    async def get_players(self, tournament_id: int, session: AsyncSession):
+        statement = select(Player).where(Player.tournament_id == tournament_id)
+        result = await session.exec(statement)
+        return result.all()
+
     async def create_player(self, tournament_id: int, payload: PlayerCreate, session: AsyncSession):
         statement = select(Player).where(Player.name == payload.name)
         result = await session.exec(statement)

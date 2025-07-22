@@ -18,6 +18,11 @@ class TournamentService:
             raise TournamentNotFound()
         return tournament
 
+    async def delete_tournament(self, id: int, session: AsyncSession):
+        tournament = await self.get_tournament(id, session)
+        await session.delete(tournament)
+        await session.commit()
+
     async def create_tournament(self, payload: TournamentCreate, user_id: int, session: AsyncSession):
         statement = select(Tournament).where(Tournament.name == payload.name)
         result = await session.exec(statement)

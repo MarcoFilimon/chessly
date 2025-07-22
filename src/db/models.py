@@ -2,12 +2,13 @@ from sqlmodel import SQLModel, Field, Column, Relationship
 import sqlalchemy.dialects.postgresql as pg
 import sqlalchemy as sa
 from datetime import datetime, date
-from src.utils.enums import TimeControl, Status
-
+from src.utils.enums import *
+import uuid
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
+    # id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(pg.UUID(as_uuid=True), unique=True, nullable=False))
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     hashed_pass: str = Field(exclude=True)
@@ -48,6 +49,14 @@ class Tournament(SQLModel, table=True):
             sa.Enum(Status, name="status", native_enum=False),
             nullable=True,
             server_default=Status.NOT_STARTED.value  # ensures the db sets the default if not provided
+        )
+    )
+    format: Format = Field(
+        default=Format.ROUND_ROBIN, #  ensures the python obj gets the default
+        sa_column=sa.Column(
+            sa.Enum(Format, name="format", native_enum=False),
+            nullable=True,
+            server_default=Format.ROUND_ROBIN.value # ensures the db sets the default if not provided
         )
     )
     start_date: date

@@ -12,3 +12,10 @@ class Status(Enum):
     NOT_STARTED = "Not Started"
     ONGOING = "Ongoing"
     FINISHED = "Finished"
+
+@unique
+class Format(Enum):
+    ROUND_ROBIN = "Round-Robin"
+    SWISS = "Swiss"
+    ELIMINATION = "Elimination"
+    DOUBLE_ELIMINATION = "Double-Elimination"

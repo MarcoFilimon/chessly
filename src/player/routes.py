@@ -47,3 +47,16 @@ async def update_player(
     '''
     player = await service.update_player(id, payload, session)
     return player
+
+
+@router.get('/{tournament_id}', status_code=status.HTTP_200_OK, response_model=list[Player])
+async def get_players(
+    tournament_id: int,
+    session: AsyncSession = Depends(db.get_session)
+) -> list[dict]:
+    '''
+    Get all players for a certain tournament
+    '''
+    players = await service.get_players(tournament_id, session)
+    return players
+

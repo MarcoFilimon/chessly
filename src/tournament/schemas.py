@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
-from src.utils.enums import TimeControl
+from src.utils.enums import *
 from src.db.models import Player
 
 
@@ -10,6 +10,8 @@ class TournamentBase(BaseModel):
     start_date: date
     end_date: date
     time_control: TimeControl
+    status: Status | None = Status.NOT_STARTED.value
+    format: Format
 
     @field_validator("time_control", mode="before")
     def normalize_time_control(cls, v):
@@ -31,6 +33,8 @@ class TournamentUpdate(BaseModel):
     start_date: date | None = Field(default=None)
     end_date: date | None = Field(default=None)
     time_control: TimeControl | None = Field(default=None)
+    status: Status | None = Field(default=None)
+    format: Format | None = Field(default=None)
 
 
 class Tournament(TournamentBase):

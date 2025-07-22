@@ -68,3 +68,26 @@ async def get_user_tournaments(
     user_id = int(token_details["user_id"]) # get current user id from token
     tournaments = await service.get_all_tournaments(user_id, limit, sort, session)
     return tournaments
+
+
+@router.get('/{id}', response_model=Tournament, status_code=status.HTTP_200_OK)
+async def get_tournament(
+    id: int,
+    session: AsyncSession = Depends(db.get_session)
+) -> list[Tournament]:
+    """
+    Retrieves tournament be ID.
+    """
+    tournament = await service.get_tournament(id, session)
+    return tournament
+
+
+@router.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_tournament(
+    id: int,
+    session: AsyncSession = Depends(db.get_session)
+):
+    """
+    Delete tournament be ID.
+    """
+    await service.delete_tournament(id, session)

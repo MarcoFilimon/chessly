@@ -68,7 +68,14 @@ async function handleLogin(e: Event): Promise<void> {
             currentView = 'home';
             renderApp(); // Re-render after login
         } else {
-            throw new Error(data.message || 'Login failed');
+            const error = await response.json();
+            // Handle Pydantic validation errors (422)
+            if (error.detail && Array.isArray(error.detail)) {
+                // Combine all error messages
+                const messages = error.detail.map((e: any) => e.msg).join('; ');
+                throw new Error(messages);
+            }
+            throw new Error(error.detail || error.message || 'Login failed.');
         }
     } catch (error: any) {
         console.error("Error logging in:", error);
@@ -110,7 +117,14 @@ async function handleSignup(e: Event): Promise<void> {
             currentView = 'home';
             renderApp();
         } else {
-            throw new Error(data.message || 'Signup failed');
+            const error = await response.json();
+            // Handle Pydantic validation errors (422)
+            if (error.detail && Array.isArray(error.detail)) {
+                // Combine all error messages
+                const messages = error.detail.map((e: any) => e.msg).join('; ');
+                throw new Error(messages);
+            }
+            throw new Error(error.detail || error.message || 'Signup failed.');
         }
     } catch (error: any) {
         console.error("Error signing up:", error);
@@ -128,6 +142,7 @@ async function handleLogout(): Promise<void> {
         localStorage.removeItem('chessTournamentUsername');
         localStorage.removeItem('chessTournamentRefreshToken');
         localStorage.removeItem('chessTournamentToken');
+        localStorage.removeItem('chessTournamentEmail');
         tournaments = []; // Clear tournaments on logout
         currentView = 'home';
         renderApp(); // Re-render after logout
@@ -148,11 +163,16 @@ async function createTournament(payload: any, token: string): Promise<any> {
     });
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create tournament');
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to create tournament.');
     }
     return await response.json();
 }
-
 
 async function fetchTournaments(token: string): Promise<any[]> {
     const response = await fetch(`${fastApiBaseUrl}/tournament`, {
@@ -162,13 +182,39 @@ async function fetchTournaments(token: string): Promise<any[]> {
     });
     if (!response.ok) {
         const error = await response.json();
-        // Use backend's detail field if present
         throw new Error(error.detail || error.message || 'Failed to fetch tournaments');
     }
     return await response.json();
 }
 
-// --- Tournament Management Handlers ---
+async function retrievePlayersForTournament(tournamentId: Number): Promise<any> {
+    const response = await fetch(`${fastApiBaseUrl}/player/${tournamentId}`);
+    return await response.json();
+}
+
+async function addPlayerToTournament(payload: any, token: string): Promise<any> {
+    const { name, rating, tournament_id } = payload;
+    const response = await fetch(`${fastApiBaseUrl}/player/${payload.tournament_id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, rating })
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to create player.');
+    }
+    return await response.json();
+}
+
 async function handleSubmitNewTournament(e: Event): Promise<void> {
     e.preventDefault();
     if (!userId) {
@@ -180,36 +226,32 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
     const tournamentStartDateInput = document.getElementById('tournamentStartDate') as HTMLInputElement;
     const tournamentEndDateInput = document.getElementById('tournamentEndDate') as HTMLInputElement;
     const tournamentLocationInput = document.getElementById('tournamentLocation') as HTMLInputElement;
-    const tournamentTimeControl = document.getElementById('tournamentTimeControl') as HTMLInputElement;
+    const tournamentTCInput = document.getElementById('tournamentTimeControl') as HTMLSelectElement;
+    const tournamentFormatInput = document.getElementById('tournamentFormat') as HTMLSelectElement;
 
     const tournamentName = tournamentNameInput.value;
     const tournamentStartDate = tournamentStartDateInput.value;
     const tournamentEndDate = tournamentEndDateInput.value;
     const tournamentLocation = tournamentLocationInput.value;
-    const tournamentTC = tournamentTimeControl.value;
+    const tournamentTC = tournamentTCInput.value;
+    const tournamentFormat = tournamentFormatInput.value;
 
    try {
-    const tournamentData = {
-        name: tournamentName,
-        start_date: tournamentStartDate,
-        end_date: tournamentEndDate, // or use a separate end date field if you have one
-        location: tournamentLocation, // or use a separate field if you have one
-        time_control: tournamentTC // adjust as needed for your backend
-    };
+        const tournamentData = {
+            name: tournamentName,
+            start_date: tournamentStartDate,
+            end_date: tournamentEndDate,
+            location: tournamentLocation,
+            time_control: tournamentTC,
+            format: tournamentFormat
+        };
 
-    await createTournament(tournamentData, token!);
+        await createTournament(tournamentData, token!);
 
-    showModal("Tournament created successfully!");
-    // Clear form fields
-    // tournamentNameInput.value = '';
-    // tournamentStartDateInput.value = '';
-    // tournamentEndDateInput.value = '';
-    // tournamentLocationInput.value = '';
-    // tournamentTimeControl.value = '';
+        showModal("Tournament created successfully!");
 
-
-    currentView = 'viewTournaments';
-    renderApp();
+        currentView = 'viewTournaments';
+        renderApp();
     } catch (error: any) {
         // console.error("Error adding tournament:", error);
         showModal(`Failed to create tournament: ${error.message}`);
@@ -298,14 +340,33 @@ function renderCreateTournament(): void {
                     </div>
                     <div>
                         <label for="tournamentTimeControl" class="block text-gray-700 text-sm font-semibold mb-2">Time Control</label>
-                        <input
-                            type="text"
+                        <select
                             id="tournamentTimeControl"
-                            name="location"
+                            name="time_control"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
-                            placeholder="e.g., Online, Local Chess Club"
                             required
                         >
+                            <option value="">Select time control</option>
+                            <option value="Bullet">Bullet</option>
+                            <option value="Blitz">Blitz</option>
+                            <option value="Rapid">Rapid</option>
+                            <option value="Classical">Classical</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="tournamentFormat" class="block text-gray-700 text-sm font-semibold mb-2">Time Control</label>
+                        <select
+                            id="tournamentFormat"
+                            name="tournament_format"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus-ring-blue-500"
+                            required
+                        >
+                            <option value="">Select format</option>
+                            <option value="Swiss">Swiss</option>
+                            <option value="Double-Swiss">Double-Swiss</option>
+                            <option value="Elimination">Elimination</option>
+                            <option value="Double-Elimination">Double-Elimination</option>
+                        </select>
                     </div>
                     <div class="flex justify-end gap-4">
                         <button type="button" id="cancelCreateBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
@@ -323,6 +384,19 @@ function renderCreateTournament(): void {
     `;
     document.getElementById('cancelCreateBtn')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
     document.getElementById('createTournamentForm')?.addEventListener('submit', handleSubmitNewTournament);
+}
+
+async function deleteTournament(tournamentId: string, token: string): Promise<void> {
+    const response = await fetch(`${fastApiBaseUrl}/tournament/${tournamentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || error.message || 'Failed to delete tournament');
+    }
 }
 
 async function renderViewTournaments(): Promise<void> {
@@ -348,6 +422,10 @@ async function renderViewTournaments(): Promise<void> {
                                 <p class="text-gray-600 text-sm mb-1"><strong>End:</strong> ${tournament.end_date}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Time Control:</strong> ${tournament.time_control}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Format:</strong> ${tournament.format}</p>
+                                <button type="button" class="btn btn-outline-primary btn-sm delete-tournament-btn" data-tournament-id="${tournament.id}">
+                                    Delete
+                                </button>
                             </div>
                         `).join('')}
                     </div>
@@ -372,6 +450,7 @@ async function renderViewTournaments(): Promise<void> {
     document.getElementById('backToHomeBtnView')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
 
     // After rendering tournamentsHtml
+    // Render a specific tournament
     document.querySelectorAll('.tournament-card').forEach(card => {
         card.addEventListener('click', () => {
             const tournamentId = (card as HTMLElement).getAttribute('data-tournament-id');
@@ -380,6 +459,35 @@ async function renderViewTournaments(): Promise<void> {
             renderApp();
         });
     });
+
+    // Handle tournament deletion
+    document.querySelectorAll('.delete-tournament-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation(); // Prevent triggering the card click event
+            const tournamentId = (btn as HTMLElement).getAttribute('data-tournament-id');
+            if (!tournamentId) return;
+            if (!confirm('Are you sure you want to delete this tournament?')) return;
+            try {
+                await deleteTournament(tournamentId, token!);
+                showModal('Tournament deleted successfully!');
+                // Refresh the tournaments list
+                await renderViewTournaments();
+            } catch (error: any) {
+                showModal(`Failed to delete tournament: ${error.message}`);
+            }
+        });
+    });
+}
+
+async function renderTournamentBracket(): Promise<void> {
+    if (!currentTournament) {
+        showModal("Tournament not found.");
+        currentView = 'viewTournaments';
+        renderApp();
+        return;
+    }
+    const players = await retrievePlayersForTournament(currentTournament.id);
+
 }
 
 function renderTournamentDetail(): void {
@@ -397,6 +505,7 @@ function renderTournamentDetail(): void {
             <p class="mb-2"><strong>End:</strong> ${currentTournament.end_date}</p>
             <p class="mb-2"><strong>Location:</strong> ${currentTournament.location}</p>
             <p class="mb-2"><strong>Time Control:</strong> ${currentTournament.time_control}</p>
+            <p class="mb-2"><strong>Format:</strong> ${currentTournament.format}</p>
             <hr class="my-4"/>
             <h3 class="text-xl font-semibold mb-2">Players</h3>
             <ul id="playerList" class="mb-4">
@@ -404,11 +513,14 @@ function renderTournamentDetail(): void {
             </ul>
             <form id="addPlayerForm" class="flex gap-2 mb-4">
                 <input type="text" id="playerNameInput" class="flex-1 px-2 py-1 border rounded" placeholder="Name" required>
-                <input type="text" id="playerRatingInput" class="flex-1 px-2 py-1 border rounded" placeholder="Rating" required>
+                <input type="number" id="playerRatingInput" class="flex-1 px-2 py-1 border rounded" placeholder="Rating" required>
                 <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Add Player</button>
             </form>
             <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
                 Back to Tournaments
+            </button>
+            <button id="generateBracket" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                Generate Bracket
             </button>
         </div>
     `;
@@ -417,7 +529,7 @@ function renderTournamentDetail(): void {
     const playerList = document.getElementById('playerList');
     if (playerList) {
         playerList.innerHTML = (currentTournament.players || [])
-            .map((player: string) => `<li>${player}</li>`)
+            .map((player: any) => `<li>${player.name} (Rating: ${player.rating})</li>`)
             .join('');
     }
 
@@ -426,22 +538,40 @@ function renderTournamentDetail(): void {
         e.preventDefault();
         const playerNameInput = document.getElementById('playerNameInput') as HTMLInputElement;
         const playerRatingInput = document.getElementById('playerRatingInput') as HTMLInputElement;
+
         const playerName = playerNameInput.value.trim();
         const playerRating = playerRatingInput.value.trim();
-        if (!playerName || !playerRating) return;
+        if (!playerName) return;
 
-        // TODO: Send API request to add player to tournament
-        // Example:
-        // await addPlayerToTournament(currentTournament.id, playerName, token!);
+        try {
+            const playerData = {
+                name: playerName,
+                rating: playerRating,
+                tournament_id: currentTournament.id
+            };
+            await addPlayerToTournament(playerData, token!);
 
-        // For now, just update locally:
-        if (!currentTournament.players) currentTournament.players = [];
-        currentTournament.players.push(playerName);
-        renderTournamentDetail();
+            // Fetch the updated tournament
+            const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            currentTournament = await response.json();
+
+            renderTournamentDetail();
+
+        } catch (error: any) {
+            showModal(`Failed to create player: ${error.message}`)
+        }
     });
 
     document.getElementById('backToTournamentsBtn')?.addEventListener('click', () => {
         currentView = 'viewTournaments';
+        renderApp();
+    });
+
+
+    document.getElementById('generateBracket')?.addEventListener('click', () => {
+        currentView = 'tournamentBracket';
         renderApp();
     });
 }
@@ -615,6 +745,9 @@ function renderApp(): void {
             break;
         case 'tournamentDetail':
             renderTournamentDetail();
+            break;
+        case 'tournamentBracket':
+            renderTournamentBracket();
             break;
         case 'login':
             renderLogin();
