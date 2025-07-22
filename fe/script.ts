@@ -226,6 +226,7 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
     const tournamentStartDateInput = document.getElementById('tournamentStartDate') as HTMLInputElement;
     const tournamentEndDateInput = document.getElementById('tournamentEndDate') as HTMLInputElement;
     const tournamentLocationInput = document.getElementById('tournamentLocation') as HTMLInputElement;
+    const tournamentNbOfPlayersInput = document.getElementById('tournamentNbofPlayers') as HTMLInputElement;
     const tournamentTCInput = document.getElementById('tournamentTimeControl') as HTMLSelectElement;
     const tournamentFormatInput = document.getElementById('tournamentFormat') as HTMLSelectElement;
 
@@ -235,6 +236,7 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
     const tournamentLocation = tournamentLocationInput.value;
     const tournamentTC = tournamentTCInput.value;
     const tournamentFormat = tournamentFormatInput.value;
+    const tournamentNbOfPlayers = tournamentNbOfPlayersInput.value;
 
    try {
         const tournamentData = {
@@ -243,7 +245,8 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
             end_date: tournamentEndDate,
             location: tournamentLocation,
             time_control: tournamentTC,
-            format: tournamentFormat
+            format: tournamentFormat,
+            nb_of_players: tournamentNbOfPlayers
         };
 
         await createTournament(tournamentData, token!);
@@ -263,7 +266,7 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
 function renderHome(): void {
     appContent.innerHTML = `
         <div class="text-center p-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-6">Welcome to Chess Tournaments!</h1>
+            <h1 class="text-4xl font-bold text-gray-800 mb-6">Welcome to Chessly!</h1>
             <p class="text-lg text-gray-600 mb-8">
                 Organize and manage your chess tournaments with ease.
             </p>
@@ -286,6 +289,167 @@ function renderHome(): void {
         document.getElementById('createTournamentBtnHome')?.addEventListener('click', () => { currentView = 'createTournament'; renderApp(); });
     }
     document.getElementById('viewTournamentsBtnHome')?.addEventListener('click', () => { currentView = 'viewTournaments'; renderApp(); });
+}
+
+function renderUpdateTournament(): void {
+    if (!currentTournament) {
+        showModal("Tournament not found.");
+        currentView = 'viewTournaments';
+        renderApp();
+        return;
+    }
+
+    appContent.innerHTML = `
+        <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Update Tournament</h2>
+            <form id="updateTournamentForm" class="space-y-6">
+                <div>
+                    <label for="updateTournamentName" class="block text-gray-700 text-sm font-semibold mb-2">Tournament Name</label>
+                    <input
+                        type="text"
+                        id="updateTournamentName"
+                        name="name"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value="${currentTournament.name || ''}"
+                        required
+                    >
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label for="updateTournamentStartDate" class="block text-gray-700 text-sm font-semibold mb-2">Start Date</label>
+                        <input
+                            type="date"
+                            id="updateTournamentStartDate"
+                            name="date"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value="${currentTournament.start_date || ''}"
+                            required
+                        >
+                    </div>
+                    <div>
+                        <label for="updateTournamentEndDate" class="block text-gray-700 text-sm font-semibold mb-2">End Date</label>
+                        <input
+                            type="date"
+                            id="updateTournamentEndDate"
+                            name="date"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value="${currentTournament.end_date || ''}"
+                            required
+                        >
+                    </div>
+                </div>
+                <div>
+                    <label for="updateTournamentLocation" class="block text-gray-700 text-sm font-semibold mb-2">Location</label>
+                    <input
+                        type="text"
+                        id="updateTournamentLocation"
+                        name="location"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value="${currentTournament.location || ''}"
+                        required
+                    >
+                </div>
+                <div>
+                    <label for="updateTournamentNbofPlayers" class="block text-gray-700 text-sm font-semibold mb-2">Nb. of Players</label>
+                    <input
+                        type="number"
+                        id="updateTournamentNbofPlayers"
+                        class="flex-1 px-1 py-1 border rounded"
+                        value="${currentTournament.nb_of_players || ''}"
+                        required
+                    >
+                </div>
+                <div>
+                    <label for="updateTournamentTimeControl" class="block text-gray-700 text-sm font-semibold mb-2">Time Control</label>
+                    <select
+                        id="updateTournamentTimeControl"
+                        name="time_control"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    >
+                        <option value="">Select time control</option>
+                        <option value="Bullet" ${currentTournament.time_control === "Bullet" ? "selected" : ""}>Bullet</option>
+                        <option value="Blitz" ${currentTournament.time_control === "Blitz" ? "selected" : ""}>Blitz</option>
+                        <option value="Rapid" ${currentTournament.time_control === "Rapid" ? "selected" : ""}>Rapid</option>
+                        <option value="Classical" ${currentTournament.time_control === "Classical" ? "selected" : ""}>Classical</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="updateTournamentFormat" class="block text-gray-700 text-sm font-semibold mb-2">Format</label>
+                    <select
+                        id="updateTournamentFormat"
+                        name="tournament_format"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                    >
+                        <option value="">Select format</option>
+                        <option value="Round-Robin" ${currentTournament.format === "Round-Robin" ? "selected" : ""}>Round-Robin</option>
+                        <option value="Double-Round-Robin" ${currentTournament.format === "Double-Round-Robin" ? "selected" : ""}>Double-Round-Robin</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancelUpdateBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        Update Tournament
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.getElementById('cancelUpdateBtn')?.addEventListener('click', () => {
+        currentView = 'viewTournaments';
+        renderApp();
+    });
+
+    document.getElementById('updateTournamentForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = (document.getElementById('updateTournamentName') as HTMLInputElement).value;
+        const start_date = (document.getElementById('updateTournamentStartDate') as HTMLInputElement).value;
+        const end_date = (document.getElementById('updateTournamentEndDate') as HTMLInputElement).value;
+        const location = (document.getElementById('updateTournamentLocation') as HTMLInputElement).value;
+        const nb_of_players = (document.getElementById('updateTournamentNbofPlayers') as HTMLInputElement).value;
+        const time_control = (document.getElementById('updateTournamentTimeControl') as HTMLSelectElement).value;
+        const format = (document.getElementById('updateTournamentFormat') as HTMLSelectElement).value;
+
+        try {
+            const payload = {
+                name,
+                start_date,
+                end_date,
+                location,
+                nb_of_players,
+                time_control,
+                format
+            };
+
+            const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                if (error.detail && Array.isArray(error.detail)) {
+                    const messages = error.detail.map((e: any) => e.msg).join('; ');
+                    throw new Error(messages);
+                }
+                throw new Error(error.detail || error.message || 'Failed to update tournament.');
+            }
+
+            showModal("Tournament updated successfully!");
+            currentView = 'viewTournaments';
+            renderApp();
+        } catch (error: any) {
+            showModal(`Failed to update tournament: ${error.message}`);
+        }
+    });
 }
 
 function renderCreateTournament(): void {
@@ -339,6 +503,10 @@ function renderCreateTournament(): void {
                         >
                     </div>
                     <div>
+                        <label for="tournamentNbofPlayers" class="block text-gray-700 text-sm font-semibold mb-2">Nb. of Players</label>
+                        <input type="number" id="tournamentNbofPlayers" class="flex-1 px-1 py-1 border rounded" placeholder="min. 2 / max. 64" required>
+                    </div>
+                    <div>
                         <label for="tournamentTimeControl" class="block text-gray-700 text-sm font-semibold mb-2">Time Control</label>
                         <select
                             id="tournamentTimeControl"
@@ -362,10 +530,14 @@ function renderCreateTournament(): void {
                             required
                         >
                             <option value="">Select format</option>
+                            <option value="Round-Robin">Round-Robin</option>
+                            <option value="Double-Round-Robin">Double-Round-Robin</option>
+                            <!--
                             <option value="Swiss">Swiss</option>
                             <option value="Double-Swiss">Double-Swiss</option>
                             <option value="Elimination">Elimination</option>
                             <option value="Double-Elimination">Double-Elimination</option>
+                            -->
                         </select>
                     </div>
                     <div class="flex justify-end gap-4">
@@ -410,7 +582,14 @@ async function renderViewTournaments(): Promise<void> {
             tournaments = await fetchTournaments(token);
 
             if (tournaments.length === 0) {
-                tournamentsHtml = `<p class="text-center text-gray-600">No tournaments created yet. Why not create one?</p>`;
+                tournamentsHtml = `
+                    <div class="flex flex-col items-center justify-center gap-4">
+                        <p class="text-center text-gray-600">No tournaments created yet. Why not create one?</p>
+                        <button id="createTournamentBtnHome" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            Create New Tournament
+                        </button>
+                    </div>
+                `;
             } else {
                 tournamentsHtml = `
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -421,11 +600,17 @@ async function renderViewTournaments(): Promise<void> {
                                 <p class="text-gray-600 text-sm mb-1"><strong>Start:</strong> ${tournament.start_date}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>End:</strong> ${tournament.end_date}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Nb. of Players:</strong> ${tournament.nb_of_players}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Time Control:</strong> ${tournament.time_control}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Format:</strong> ${tournament.format}</p>
-                                <button type="button" class="btn btn-outline-primary btn-sm delete-tournament-btn" data-tournament-id="${tournament.id}">
-                                    Delete
-                                </button>
+                                <div class="mt-4 flex gap-4">
+                                    <button type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded shadow-sm cursor-pointer transition duration-200 delete-tournament-btn" data-tournament-id="${tournament.id}">
+                                        Delete
+                                    </button>
+                                    <button type="button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded shadow-sm cursor-pointer transition duration-200 update-tournament-btn" data-tournament-id="${tournament.id}">
+                                        Update
+                                    </button>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -447,6 +632,9 @@ async function renderViewTournaments(): Promise<void> {
             </div>
         </div>
     `;
+
+    document.getElementById('createTournamentBtnHome')?.addEventListener('click', () => {       currentView = 'createTournament'; renderApp(); });
+
     document.getElementById('backToHomeBtnView')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
 
     // After rendering tournamentsHtml
@@ -455,7 +643,7 @@ async function renderViewTournaments(): Promise<void> {
         card.addEventListener('click', () => {
             const tournamentId = (card as HTMLElement).getAttribute('data-tournament-id');
             currentTournament = tournaments.find(t => t.id == tournamentId);
-            currentView = 'tournamentDetail';
+            currentView = 'viewTournamentDetail';
             renderApp();
         });
     });
@@ -477,17 +665,22 @@ async function renderViewTournaments(): Promise<void> {
             }
         });
     });
-}
 
-async function renderTournamentBracket(): Promise<void> {
-    if (!currentTournament) {
-        showModal("Tournament not found.");
-        currentView = 'viewTournaments';
-        renderApp();
-        return;
-    }
-    const players = await retrievePlayersForTournament(currentTournament.id);
-
+    // Handle tournament updating
+    document.querySelectorAll('.update-tournament-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const tournamentId = (btn as HTMLElement).getAttribute('data-tournament-id');
+            if (!tournamentId) return;
+            currentTournament = tournaments.find(t => t.id == tournamentId);
+            try {
+                renderUpdateTournament();
+            }
+            catch(error: any) {
+                showModal(`Failed to update tournament: ${error.message}`);
+            }
+        });
+    });
 }
 
 function renderTournamentDetail(): void {
@@ -498,32 +691,136 @@ function renderTournamentDetail(): void {
         return;
     }
 
+    // Tab button classes
+    const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
+    const tabActive = "bg-blue-600 text-white";
+    const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
+
     appContent.innerHTML = `
-        <div class="p-8 max-w-xl mx-auto bg-white rounded-lg shadow-lg">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">${currentTournament.name}</h2>
-            <p class="mb-2"><strong>Start:</strong> ${currentTournament.start_date}</p>
-            <p class="mb-2"><strong>End:</strong> ${currentTournament.end_date}</p>
-            <p class="mb-2"><strong>Location:</strong> ${currentTournament.location}</p>
-            <p class="mb-2"><strong>Time Control:</strong> ${currentTournament.time_control}</p>
-            <p class="mb-2"><strong>Format:</strong> ${currentTournament.format}</p>
-            <hr class="my-4"/>
-            <h3 class="text-xl font-semibold mb-2">Players</h3>
-            <ul id="playerList" class="mb-4">
-                <!-- Render players here -->
-            </ul>
-            <form id="addPlayerForm" class="flex gap-2 mb-4">
-                <input type="text" id="playerNameInput" class="flex-1 px-2 py-1 border rounded" placeholder="Name" required>
-                <input type="number" id="playerRatingInput" class="flex-1 px-2 py-1 border rounded" placeholder="Rating" required>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Add Player</button>
-            </form>
-            <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                Back to Tournaments
-            </button>
-            <button id="generateBracket" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                Generate Bracket
-            </button>
+        <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+            <div class="flex gap-2 mb-6">
+                <button id="descTab" class="${tabBase} ${currentView === 'viewTournamentDetail' ? tabActive : tabInactive}">
+                    Description
+                </button>
+                <button id="playersTab" class="${tabBase} ${currentView === 'viewTournamentPlayers' ? tabActive : tabInactive}">
+                    Players
+                </button>
+                <button id="gamesTab" class="${tabBase} ${currentView === 'viewTournamentGames' ? tabActive : tabInactive}">
+                    Games
+                </button>
+                <button id="resultsTab" class="${tabBase} ${currentView === 'viewTournamentResults' ? tabActive : tabInactive}">
+                    Results
+                </button>
+            </div>
+            <div id="tournamentDetailContent">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">${currentTournament.name}</h2>
+                <p class="mb-2"><strong>Start:</strong> ${currentTournament.start_date}</p>
+                <p class="mb-2"><strong>End:</strong> ${currentTournament.end_date}</p>
+                <p class="mb-2"><strong>Location:</strong> ${currentTournament.location}</p>
+                <p class="mb-2"><strong>Time Control:</strong> ${currentTournament.time_control}</p>
+                <p class="mb-2"><strong>Format:</strong> ${currentTournament.format}</p>
+                <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
+                    Back to Tournaments
+                </button>
+            </div>
         </div>
     `;
+
+    // Tab navigation handlers (always switch view, but keep buttons visible)
+    document.getElementById('descTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentDetail') {
+            currentView = 'viewTournamentDetail';
+            renderApp();
+        }
+    });
+    document.getElementById('playersTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentPlayers') {
+            currentView = 'viewTournamentPlayers';
+            renderApp();
+        }
+    });
+    document.getElementById('gamesTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentGames') {
+            currentView = 'viewTournamentGames';
+            renderApp();
+        }
+    });
+    document.getElementById('resultsTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentResults') {
+            currentView = 'viewTournamentResults';
+            renderApp();
+        }
+    });
+    document.getElementById('backToTournamentsBtn')?.addEventListener('click', () => {
+        currentView = 'viewTournaments';
+        renderApp();
+    });
+}
+
+// --- Make Players and Games views use the same tab menu ---
+
+function renderTournamentPlayers(): void {
+    // Tab button classes
+    const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
+    const tabActive = "bg-blue-600 text-white";
+    const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
+
+    appContent.innerHTML = `
+            <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+                <div class="flex gap-2 mb-6">
+                    <button id="descTab" class="${tabBase} ${currentView === 'viewTournamentDetail' ? tabActive : tabInactive}">
+                        Description
+                    </button>
+                    <button id="playersTab" class="${tabBase} ${currentView === 'viewTournamentPlayers' ? tabActive : tabInactive}">
+                        Players
+                    </button>
+                    <button id="gamesTab" class="${tabBase} ${currentView === 'viewTournamentGames' ? tabActive : tabInactive}">
+                        Games
+                    </button>
+                    <button id="resultsTab" class="${tabBase} ${currentView === 'viewTournamentResults' ? tabActive : tabInactive}">
+                        Results
+                    </button>
+                </div>
+                <div id="tournamentDetailContent">
+                    <h3 class="text-xl font-semibold mb-4">Players</h3>
+                    <div class="overflow-x-auto mb-4">
+                        <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-2 border-b text-left">Nb</th>
+                                    <th class="px-4 py-2 border-b text-left">Name</th>
+                                    <th class="px-4 py-2 border-b text-left">Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody id="playerTableBody">
+                                <!-- Player rows will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <form id="addPlayerForm" class="flex gap-2 mb-4">
+                        <input type="text" id="playerNameInput" class="flex-1 px-1 py-1 border rounded" placeholder="Name" required>
+                        <input type="number" id="playerRatingInput" class="flex-1 px-1 py-1 border rounded" placeholder="Rating" required>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Add Player</button>
+                    </form>
+                    <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
+                        Back to Tournaments
+                    </button>
+                </div>
+            </div>
+        `;
+
+    // Render players in the table
+    const playerTableBody = document.getElementById('playerTableBody');
+    if (playerTableBody) {
+        playerTableBody.innerHTML = (currentTournament.players || [])
+            .map((player: any, idx: number) =>
+                `<tr>
+                    <td class="px-4 py-2 border-b">${idx + 1}</td>
+                    <td class="px-4 py-2 border-b">${player.name}</td>
+                    <td class="px-4 py-2 border-b">${player.rating}</td>
+                </tr>`
+            ).join('');
+    }
 
     // Render players (if any)
     const playerList = document.getElementById('playerList');
@@ -557,21 +854,180 @@ function renderTournamentDetail(): void {
             });
             currentTournament = await response.json();
 
-            renderTournamentDetail();
+            renderApp();
 
         } catch (error: any) {
             showModal(`Failed to create player: ${error.message}`)
         }
     });
 
+    // Tab navigation handlers
+    document.getElementById('descTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentDetail') {
+            currentView = 'viewTournamentDetail';
+            renderApp();
+        }
+    });
+    document.getElementById('playersTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentPlayers') {
+            currentView = 'viewTournamentPlayers';
+            renderApp();
+        }
+    });
+    document.getElementById('gamesTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentGames') {
+            currentView = 'viewTournamentGames';
+            renderApp();
+        }
+    });
+    document.getElementById('resultsTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentResults') {
+            currentView = 'viewTournamentResults';
+            renderApp();
+        }
+    });
     document.getElementById('backToTournamentsBtn')?.addEventListener('click', () => {
         currentView = 'viewTournaments';
         renderApp();
     });
+}
+
+async function renderTournamentGames(): Promise<void> {
+    if (!currentTournament) {
+        showModal("Tournament not found.");
+        currentView = 'viewTournaments';
+        renderApp();
+        return;
+    }
+
+    // Tab button classes
+    const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
+    const tabActive = "bg-blue-600 text-white";
+    const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
+
+    appContent.innerHTML = `
+        <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+            <div class="flex gap-2 mb-6">
+                <button id="descTab" class="${tabBase} ${currentView === 'viewTournamentDetail' ? tabActive : tabInactive}">
+                    Description
+                </button>
+                <button id="playersTab" class="${tabBase} ${currentView === 'viewTournamentPlayers' ? tabActive : tabInactive}">
+                    Players
+                </button>
+                <button id="gamesTab" class="${tabBase} ${currentView === 'viewTournamentGames' ? tabActive : tabInactive}">
+                    Games
+                </button>
+                <button id="resultsTab" class="${tabBase} ${currentView === 'viewTournamentResults' ? tabActive : tabInactive}">
+                    Results
+                </button>
+            </div>
+            <div id="tournamentDetailContent">
+                <h3 class="text-xl font-semibold mb-2">Games</h3>
+                <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
+                    Back to Tournaments
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Tab navigation handlers
+    document.getElementById('descTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentDetail') {
+            currentView = 'viewTournamentDetail';
+            renderApp();
+        }
+    });
+    document.getElementById('playersTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentPlayers') {
+            currentView = 'viewTournamentPlayers';
+            renderApp();
+        }
+    });
+    document.getElementById('gamesTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentGames') {
+            currentView = 'viewTournamentGames';
+            renderApp();
+        }
+    });
+    document.getElementById('resultsTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentResults') {
+            currentView = 'viewTournamentResults';
+            renderApp();
+        }
+    });
+    document.getElementById('backToTournamentsBtn')?.addEventListener('click', () => {
+        currentView = 'viewTournaments';
+        renderApp();
+    });
+}
 
 
-    document.getElementById('generateBracket')?.addEventListener('click', () => {
-        currentView = 'tournamentBracket';
+async function renderTournamentResults(): Promise<void> {
+    if (!currentTournament) {
+        showModal("Tournament not found.");
+        currentView = 'viewTournaments';
+        renderApp();
+        return;
+    }
+
+    // Tab button classes
+    const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
+    const tabActive = "bg-blue-600 text-white";
+    const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
+
+    appContent.innerHTML = `
+        <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+            <div class="flex gap-2 mb-6">
+                <button id="descTab" class="${tabBase} ${currentView === 'viewTournamentDetail' ? tabActive : tabInactive}">
+                    Description
+                </button>
+                <button id="playersTab" class="${tabBase} ${currentView === 'viewTournamentPlayers' ? tabActive : tabInactive}">
+                    Players
+                </button>
+                <button id="gamesTab" class="${tabBase} ${currentView === 'viewTournamentGames' ? tabActive : tabInactive}">
+                    Games
+                </button>
+                <button id="resultsTab" class="${tabBase} ${currentView === 'viewTournamentResults' ? tabActive : tabInactive}">
+                    Results
+                </button>
+            </div>
+            <div id="tournamentDetailContent">
+                <h3 class="text-xl font-semibold mb-2">Results</h3>
+                <p class="mb-4 text-gray-600">Results coming soon...</p>
+                <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
+                    Back to Tournaments
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Tab navigation handlers
+    document.getElementById('descTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentDetail') {
+            currentView = 'viewTournamentDetail';
+            renderApp();
+        }
+    });
+    document.getElementById('playersTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentPlayers') {
+            currentView = 'viewTournamentPlayers';
+            renderApp();
+        }
+    });
+    document.getElementById('gamesTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentGames') {
+            currentView = 'viewTournamentGames';
+            renderApp();
+        }
+    });
+    document.getElementById('resultsTab')?.addEventListener('click', () => {
+        if (currentView !== 'viewTournamentResults') {
+            currentView = 'viewTournamentResults';
+            renderApp();
+        }
+    });
+    document.getElementById('backToTournamentsBtn')?.addEventListener('click', () => {
+        currentView = 'viewTournaments';
         renderApp();
     });
 }
@@ -707,7 +1163,7 @@ function renderApp(): void {
                 Create
             </button>
             <button id="viewBtnHeader" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
-                View My Tournaments
+                Tournaments
             </button>
             <button id="viewUser" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
                 ${userUsername || 'User'}
@@ -743,11 +1199,17 @@ function renderApp(): void {
         case 'viewTournaments':
             renderViewTournaments();
             break;
-        case 'tournamentDetail':
+        case 'viewTournamentDetail':
             renderTournamentDetail();
             break;
-        case 'tournamentBracket':
-            renderTournamentBracket();
+        case 'viewTournamentGames':
+            renderTournamentGames();
+            break;
+        case 'viewTournamentPlayers':
+            renderTournamentPlayers();
+            break;
+        case 'viewTournamentResults':
+            renderTournamentResults();
             break;
         case 'login':
             renderLogin();
@@ -766,4 +1228,9 @@ window.onload = function() {
     renderApp();
     // Attach global event listener for Home button
     homeBtn.addEventListener('click', () => { currentView = 'home'; renderApp(); });
+    // Make the Chessly logo clickable to go home
+    document.getElementById('logoHome')?.addEventListener('click', () => {
+        currentView = 'home';
+        renderApp();
+    });
 };

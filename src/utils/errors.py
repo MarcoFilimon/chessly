@@ -71,6 +71,10 @@ class PlayerAlreadyExists(Chessly):
     """Tournament Not found"""
     pass
 
+class TournamentFull(Chessly):
+    """Tournament is full"""
+    pass
+
 
 class AccountNotVerified(Exception):
     """Account not yet verified"""
@@ -154,6 +158,16 @@ def register_all_errors(app: FastAPI):
             initial_detail={
                 "message": "Player already exists.",
                 "error_code": "player_already_exists`",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        TournamentFull,
+        create_exception_handler(
+            status_code=status.HTTP_404_NOT_FOUND,
+            initial_detail={
+                "message": "Maximum number of players has been achieved.",
+                "error_code": "tournament_full`",
             },
         ),
     )

@@ -12,6 +12,7 @@ class TournamentBase(BaseModel):
     time_control: TimeControl
     status: Status | None = Status.NOT_STARTED.value
     format: Format
+    nb_of_players: int = Field(ge=1, le=64)
 
     @field_validator("time_control", mode="before")
     def normalize_time_control(cls, v):
@@ -30,6 +31,7 @@ class TournamentCreate(TournamentBase):
 class TournamentUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=3, max_length=10)
     location: str | None = Field(default=None, min_length=3, max_length=10)
+    nb_of_players: int | None = Field(defualt=None, ge=2, le=64)
     start_date: date | None = Field(default=None)
     end_date: date | None = Field(default=None)
     time_control: TimeControl | None = Field(default=None)

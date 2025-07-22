@@ -16,6 +16,7 @@ class Status(Enum):
 @unique
 class Format(Enum):
     ROUND_ROBIN = "Round-Robin"
+    DOUBLE_ROUND_ROBIN = 'Double-Round-Robin'
     SWISS = "Swiss"
     ELIMINATION = "Elimination"
     DOUBLE_ELIMINATION = "Double-Elimination"

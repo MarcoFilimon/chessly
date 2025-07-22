@@ -1,7 +1,7 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.db.models import Player
+from src.db.models import Player, Tournament
 from src.utils.errors import *
 from .schemas import PlayerCreate, PlayerUpdate
 
@@ -9,7 +9,6 @@ from src.utils.errors import (
     PlayerNotFound,
     PlayerAlreadyExists
 )
-
 
 class PlayerService:
     async def get_player(self, id: int, session: AsyncSession):
@@ -29,6 +28,16 @@ class PlayerService:
         player = result.first()
         if player:
             raise PlayerAlreadyExists()
+
+        tournament = await session.get(Tournament, tournament_id)
+        if tournament is None:
+            raise TournamentNotFound()
+
+        count_stmt = select(Player).where(Player.tournament_id == tournament_id)
+        count_result = await session.exec(count_stmt)
+        current_players = count_result.all()
+        if len(current_players) >= tournament.nb_of_players:
+            raise TournamentFull()
 
         new_player = Player.model_validate(payload)
         new_player.tournament_id = tournament_id
