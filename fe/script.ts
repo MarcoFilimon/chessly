@@ -36,6 +36,48 @@ function closeModal(): void {
 modalCloseBtn.addEventListener('click', closeModal);
 
 
+async function apiFetch(input: RequestInfo, init: RequestInit = {}, retry = true): Promise<Response> {
+    // Attach token if available
+    if (token) {
+        init.headers = {
+            ...(init.headers || {}),
+            'Authorization': `Bearer ${token}`,
+        };
+    }
+    let response = await fetch(input, init);
+
+    // If token expired, try to refresh and retry once
+    if (response.status === 401 && retry && refresh_token) {
+        // Try to refresh token
+        const refreshResp = await fetch(`${fastApiBaseUrl}/auth/refresh_token`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${refresh_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (refreshResp.ok) {
+            const data = await refreshResp.json();
+            token = data.access_token;
+            localStorage.setItem('chessTournamentToken', token!);
+            // Retry original request with new token
+            if (token) {
+                init.headers = {
+                    ...(init.headers || {}),
+                    'Authorization': `Bearer ${token}`,
+                };
+            }
+            response = await fetch(input, init);
+        } else {
+            // Refresh failed, force logout
+            await handleLogout();
+            throw new Error("Session expired. Please log in again.");
+        }
+    }
+    return response;
+}
+
+
 // --- Authentication Handlers (calling FastAPI) ---
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
@@ -175,11 +217,7 @@ async function createTournament(payload: any, token: string): Promise<any> {
 }
 
 async function fetchTournaments(token: string): Promise<any[]> {
-    const response = await fetch(`${fastApiBaseUrl}/tournament`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
+    const response = await apiFetch(`${fastApiBaseUrl}/tournament`);
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to fetch tournaments');
@@ -188,7 +226,11 @@ async function fetchTournaments(token: string): Promise<any[]> {
 }
 
 async function retrievePlayersForTournament(tournamentId: Number): Promise<any> {
-    const response = await fetch(`${fastApiBaseUrl}/player/${tournamentId}`);
+    const response = await apiFetch(`${fastApiBaseUrl}/player/${tournamentId}`);
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || error.message || 'Failed to fetch players');
+    }
     return await response.json();
 }
 
@@ -573,27 +615,50 @@ async function deleteTournament(tournamentId: string, token: string): Promise<vo
 
 async function renderViewTournaments(): Promise<void> {
     let tournamentsHtml = '';
+    // Track which tab is active
+    let tournamentTab = (window as any).tournamentTab || 'Not Started';
 
     if (!userId || !token) {
         tournamentsHtml = `<p class="text-center text-gray-600">Please log in to view your tournaments.</p>`;
     } else {
         try {
-            // Fetch tournaments from backend
             tournaments = await fetchTournaments(token);
 
-            if (tournaments.length === 0) {
+            // Tabs
+            const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
+            const tabActive = "bg-blue-600 text-white";
+            const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
+
+            const normalizeStatus = (status: string) => status.replace(/[\s_]/g, '').toLowerCase();
+
+            // Filter tournaments by status
+            const filtered = tournaments.filter(t => {
+                const status = normalizeStatus(t.status);
+                if (tournamentTab === "Not Started") return status === "notstarted";
+                if (tournamentTab === "Ongoing") return status === "ongoing";
+                if (tournamentTab === "Finished") return status === "finished";
+                return true;
+            });
+
+            if (filtered.length === 0 && tournamentTab === "Not Started") {
                 tournamentsHtml = `
                     <div class="flex flex-col items-center justify-center gap-4">
-                        <p class="text-center text-gray-600">No tournaments created yet. Why not create one?</p>
+                        <p class="text-center text-gray-600">No tournaments in this category.</p>
                         <button id="createTournamentBtnHome" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                             Create New Tournament
                         </button>
                     </div>
                 `;
+            } else if (filtered.length === 0 && tournamentTab !== "Not Started") {
+                tournamentsHtml = `
+                    <div class="flex flex-col items-center justify-center gap-4">
+                        <p class="text-center text-gray-600">No tournaments in this category.</p>
+                    </div>
+                `;
             } else {
                 tournamentsHtml = `
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${tournaments.map(tournament => `
+                        ${filtered.map(tournament => `
                             <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 cursor-pointer tournament-card"
                             data-tournament-id="${tournament.id}">
                                 <h3 class="text-xl font-semibold text-gray-800 mb-2">${tournament.name}</h3>
@@ -607,15 +672,29 @@ async function renderViewTournaments(): Promise<void> {
                                     <button type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded shadow-sm cursor-pointer transition duration-200 delete-tournament-btn" data-tournament-id="${tournament.id}">
                                         Delete
                                     </button>
-                                    <button type="button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded shadow-sm cursor-pointer transition duration-200 update-tournament-btn" data-tournament-id="${tournament.id}">
+
+                                    ${(tournament.status === "Not Started")
+                                    ? `<button type="button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded shadow-sm cursor-pointer transition duration-200 update-tournament-btn" data-tournament-id="${tournament.id}">
                                         Update
-                                    </button>
+                                    </button>`
+                                    : ""
+                                }
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                 `;
             }
+
+            // Tabs HTML
+            tournamentsHtml = `
+                <div class="flex gap-2 mb-6">
+                    <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">Not Started</button>
+                    <button id="ongoingTab" class="${tabBase} ${tournamentTab === 'Ongoing' ? tabActive : tabInactive}">Ongoing</button>
+                    <button id="finishedTab" class="${tabBase} ${tournamentTab === 'Finished' ? tabActive : tabInactive}">Finished</button>
+                </div>
+                ${tournamentsHtml}
+            `;
         } catch (error: any) {
             tournamentsHtml = `<p class="text-center text-red-600">Failed to load tournaments: ${error.message}</p>`;
         }
@@ -633,11 +712,23 @@ async function renderViewTournaments(): Promise<void> {
         </div>
     `;
 
-    document.getElementById('createTournamentBtnHome')?.addEventListener('click', () => {       currentView = 'createTournament'; renderApp(); });
+    // Tab switching logic
+    document.getElementById('notStartedTab')?.addEventListener('click', () => {
+        (window as any).tournamentTab = 'Not Started';
+        renderViewTournaments();
+    });
+    document.getElementById('ongoingTab')?.addEventListener('click', () => {
+        (window as any).tournamentTab = 'Ongoing';
+        renderViewTournaments();
+    });
+    document.getElementById('finishedTab')?.addEventListener('click', () => {
+        (window as any).tournamentTab = 'Finished';
+        renderViewTournaments();
+    });
 
+    document.getElementById('createTournamentBtnHome')?.addEventListener('click', () => { currentView = 'createTournament'; renderApp(); });
     document.getElementById('backToHomeBtnView')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
 
-    // After rendering tournamentsHtml
     // Render a specific tournament
     document.querySelectorAll('.tournament-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -697,36 +788,46 @@ function renderTournamentDetail(): void {
     const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
 
     appContent.innerHTML = `
-        <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
-            <div class="flex gap-2 mb-6">
-                <button id="descTab" class="${tabBase} ${currentView === 'viewTournamentDetail' ? tabActive : tabInactive}">
-                    Description
-                </button>
-                <button id="playersTab" class="${tabBase} ${currentView === 'viewTournamentPlayers' ? tabActive : tabInactive}">
-                    Players
-                </button>
-                <button id="gamesTab" class="${tabBase} ${currentView === 'viewTournamentGames' ? tabActive : tabInactive}">
-                    Games
-                </button>
-                <button id="resultsTab" class="${tabBase} ${currentView === 'viewTournamentResults' ? tabActive : tabInactive}">
-                    Results
-                </button>
-            </div>
-            <div id="tournamentDetailContent">
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">${currentTournament.name}</h2>
-                <p class="mb-2"><strong>Start:</strong> ${currentTournament.start_date}</p>
-                <p class="mb-2"><strong>End:</strong> ${currentTournament.end_date}</p>
-                <p class="mb-2"><strong>Location:</strong> ${currentTournament.location}</p>
-                <p class="mb-2"><strong>Time Control:</strong> ${currentTournament.time_control}</p>
-                <p class="mb-2"><strong>Format:</strong> ${currentTournament.format}</p>
-                <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
-                    Back to Tournaments
-                </button>
+        <div class="p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="flex-1">
+                    <div class="flex gap-2 mb-6">
+                        <button id="descTab" class="${tabBase} ${currentView === 'viewTournamentDetail' ? tabActive : tabInactive}">
+                            Description
+                        </button>
+                        <button id="playersTab" class="${tabBase} ${currentView === 'viewTournamentPlayers' ? tabActive : tabInactive}">
+                            Players
+                        </button>
+                        <button id="gamesTab" class="${tabBase} ${currentView === 'viewTournamentGames' ? tabActive : tabInactive}">
+                            Games
+                        </button>
+                        <button id="resultsTab" class="${tabBase} ${currentView === 'viewTournamentResults' ? tabActive : tabInactive}">
+                            Results
+                        </button>
+                    </div>
+                    <div id="tournamentDetailContent">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">${currentTournament.name}</h2>
+                        <p class="mb-2"><strong>Start:</strong> ${currentTournament.start_date}</p>
+                        <p class="mb-2"><strong>End:</strong> ${currentTournament.end_date}</p>
+                        <p class="mb-2"><strong>Location:</strong> ${currentTournament.location}</p>
+                        <p class="mb-2"><strong>Nb. Of Players:</strong> ${currentTournament.nb_of_players}</p>
+                        <p class="mb-2"><strong>Time Control:</strong> ${currentTournament.time_control}</p>
+                        <p class="mb-2"><strong>Format:</strong> ${currentTournament.format}</p>
+                        <p class="mb-2"><strong>Status:</strong> ${currentTournament.status}</p>
+                        <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
+                            Back to Tournaments
+                        </button>
+
+                        <button id="startTournamentBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                            Start Tournament
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     `;
 
-    // Tab navigation handlers (always switch view, but keep buttons visible)
+    // Tab navigation handlers
     document.getElementById('descTab')?.addEventListener('click', () => {
         if (currentView !== 'viewTournamentDetail') {
             currentView = 'viewTournamentDetail';
@@ -755,9 +856,42 @@ function renderTournamentDetail(): void {
         currentView = 'viewTournaments';
         renderApp();
     });
+
+    // Start Tournament button logic
+    document.getElementById('startTournamentBtn')?.addEventListener('click', async () => {
+        // Check if all players have been created
+        const players = currentTournament.players || [];
+        if (players.length < currentTournament.nb_of_players) {
+            showModal(`You need to add all ${currentTournament.nb_of_players} players before starting the tournament.`);
+            return;
+        }
+        if (currentTournament.statuss === "Ongoing")
+        // Update tournament status to ONGOING
+        try {
+            const payload = { status: "Ongoing" };
+            const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ ...currentTournament, ...payload })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || error.message || 'Failed to start tournament.');
+            }
+            showModal("Tournament started!");
+            // Refresh tournament data
+            const updated = await response.json();
+            currentTournament = updated;
+            renderApp();
+        } catch (error: any) {
+            showModal(`Failed to start tournament: ${error.message}`);
+        }
+    });
 }
 
-// --- Make Players and Games views use the same tab menu ---
 
 function renderTournamentPlayers(): void {
     // Tab button classes
@@ -848,10 +982,11 @@ function renderTournamentPlayers(): void {
             };
             await addPlayerToTournament(playerData, token!);
 
-            // Fetch the updated tournament
-            const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || error.message || 'Failed to fetch tournaments');
+            }
             currentTournament = await response.json();
 
             renderApp();
@@ -923,6 +1058,13 @@ async function renderTournamentGames(): Promise<void> {
             </div>
             <div id="tournamentDetailContent">
                 <h3 class="text-xl font-semibold mb-2">Games</h3>
+                <p class="mb-4 text-gray-600">
+                ${
+                    currentTournament.status === "Not Started" || currentTournament.status === "NOT STARTED"
+                        ? "Once the tournament starts, the rounds will be generated."
+                        : ""
+                }
+                </p>
                 <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
                     Back to Tournaments
                 </button>

@@ -64,8 +64,8 @@ class UserService:
         user = await self.get_user_by_name(username, session)
         if not user or not Hash.verify(user.hashed_pass, password):
             raise InvalidCredentials()
-        token = create_access_token({"username": username, "role": user.role, "user_id": user.id}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY))
-        refresh_token = create_access_token({"username": username, "user_id": user.id}, expiry=timedelta(hours=Config.REFRESH_TOKEN_EXPIRY), refresh=True)
+        token = create_token({"username": username, "role": user.role, "user_id": user.id}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY))
+        refresh_token = create_token({"username": username, "role": user.role, "user_id": user.id}, expiry=timedelta(hours=Config.REFRESH_TOKEN_EXPIRY), refresh=True)
         return JSONResponse(
             content={
                 "message": "Login successful.",

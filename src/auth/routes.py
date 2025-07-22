@@ -6,7 +6,7 @@ from .service import UserService
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db import db
 from datetime import datetime
-from .utils import create_access_token, decode_url_safe_token, Hash
+from .utils import create_token, decode_url_safe_token, Hash
 from src.db import redis
 from src.utils.errors import UserNotFound, NewPasswordsException, PasswordResetRequestTimeout
 from datetime import datetime, timedelta
@@ -73,7 +73,7 @@ async def login(
     return result
 
 
-@router.get('/refresh_token')
+@router.post('/refresh_token')
 async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer())):
     '''
     Generate a new access token based on the refresh token.
@@ -82,9 +82,7 @@ async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer(
     expiry_timestamp = token_details["exp"]
     # If refresh token NOT expired (its datetime is higher than the current datetime) -> generate new access token
     if datetime.fromtimestamp(expiry_timestamp) > datetime.now():
-        new_access_token = create_access_token(
-            {"username": token_details['username']}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY)
-        )
+        new_access_token = create_token({"username": token_details['username'], "role": token_details['role'], "user_id": token_details['user_id']}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY))
         return JSONResponse(
             content={
                 "access_token": new_access_token

@@ -16,7 +16,7 @@ class Hash():
     def verify(hashed_password, plain_password):
         return pwd_cxt.verify(plain_password, hashed_password)
 
-def create_access_token(data: dict, expiry: timedelta = None, refresh: bool = False):
+def create_token(data: dict, expiry: timedelta = None, refresh: bool = False):
     to_encode = data.copy()
     local_tz = tzlocal.get_localzone()
     expire = datetime.now(local_tz) + expiry
