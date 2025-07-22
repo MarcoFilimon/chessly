@@ -77,6 +77,11 @@ class Tournament(SQLModel, table=True):
         back_populates="tournament", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
     )
 
+    # ------------------ Round relationship -----------------
+    rounds: list["Round"] = Relationship(
+        back_populates="tournament", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
+    )
+
     def __repr__(self) -> str:
         return f"<Tournament {self.name}>"
 
@@ -98,4 +103,90 @@ class Player(SQLModel, table=True):
     )
     tournament: Tournament = Relationship(
         back_populates="players", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    # ------------- Matchup relationship
+    matchups_as_white: list["Matchup"] = Relationship(
+        back_populates="white_player",
+        sa_relationship=sa.orm.relationship(
+            "Matchup",
+            foreign_keys="[Matchup.white_player_id]",
+            back_populates="white_player"
+        )
+    )
+    matchups_as_black: list["Matchup"] = Relationship(
+        back_populates="black_player",
+        sa_relationship=sa.orm.relationship(
+            "Matchup",
+            foreign_keys="[Matchup.black_player_id]",
+            back_populates="black_player"
+        )
+    )
+
+
+
+class Round(SQLModel, table=True):
+    __tablename__ = "rounds"
+
+    id: int | None = Field(default=None, primary_key=True)
+    round_number: int
+
+    # -------------- Tournament relationship
+    tournament_id: int | None = Field(
+        default=None, foreign_key="tournaments.id", nullable=False, ondelete="CASCADE"
+    )
+    tournament: Tournament = Relationship(
+        back_populates="rounds", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    # -------------- Matchup relationship
+    matchups: list["Matchup"] = Relationship(back_populates="round", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True)
+
+
+
+class Matchup(SQLModel, table=True):
+    __tablename__ = "matchups"
+
+    id: int | None = Field(default=None, primary_key=True)
+
+    result: Result = Field(
+        default=Result.DRAW, #  ensures the python obj gets the default
+        sa_column=sa.Column(
+            sa.Enum(Result, name="result", native_enum=False),
+            nullable=True,
+            server_default=Result.DRAW.value # ensures the db sets the default if not provided
+        )
+    )
+
+    # -------------- Round relationship
+    round_id: int | None = Field(
+        default=None, foreign_key="rounds.id", nullable=False, ondelete="CASCADE"
+    )
+    round: Round = Relationship(
+        back_populates="matchups", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    # -------------- Player relationships
+    white_player_id: int | None = Field(
+        default=None, foreign_key="players.id", nullable=False, ondelete="CASCADE"
+    )
+    black_player_id: int | None = Field(
+        default=None, foreign_key="players.id", nullable=False, ondelete="CASCADE"
+    )
+
+    white_player: Player = Relationship(
+        back_populates="matchups_as_white",
+        sa_relationship=sa.orm.relationship(
+            "Player",
+            foreign_keys="[Matchup.white_player_id]",
+            back_populates="matchups_as_white"
+        )
+    )
+    black_player: Player = Relationship(
+        back_populates="matchups_as_black",
+        sa_relationship=sa.orm.relationship(
+            "Player",
+            foreign_keys="[Matchup.black_player_id]",
+            back_populates="matchups_as_black"
+        )
     )

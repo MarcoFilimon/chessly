@@ -19,3 +19,9 @@ class Format(Enum):
     SWISS = "Swiss"
     ELIMINATION = "Elimination"
     DOUBLE_ELIMINATION = "Double-Elimination"
+
+@unique
+class Result(Enum):
+    WHITE_WINS = "White-Wins"
+    BLACK_WINS = "Black-Wins"
+    DRAW = "Draw"
