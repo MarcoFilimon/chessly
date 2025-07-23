@@ -1,22 +1,43 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from datetime import datetime
 from src.db.models import Tournament
 
-class UserBase(BaseModel):
-    username: str = Field(min_length=3, max_length=10)
-    email: EmailStr = Field(min_length=5, max_length=40)
+
+class UserValidatorMixin(BaseModel):
+    @field_validator("username", check_fields=False)
+    def name_length(cls, v):
+        if v is None:
+            return v
+        if len(v) < 3:
+            raise ValueError("Username must be at least 3 characters long.")
+        if len(v) > 20:
+            raise ValueError("Username cannot be longer than 20 characters.")
+        return v
+
+    @field_validator("password", check_fields=False)
+    def password_length(cls, v):
+        if v is None:
+            return v
+        if len(v) < 3:
+            raise ValueError("Password must be at least 3 characters long.")
+        return v
+
+
+class UserBase(UserValidatorMixin):
+    username: str
+    email: EmailStr
     first_name: str | None = None
     last_name: str | None = None
 
 
 class UserCreate(UserBase):
-    password: str = Field(min_length=3)
+    password: str
 
 
-class UserUpdate(BaseModel):
-    username: str | None = Field(default=None, min_length=3, max_length=10)
-    email: EmailStr | None = Field(default=None, min_length=5, max_length=40)
-    password: str | None = Field(default=None, min_length=3)
+class UserUpdate(UserValidatorMixin):
+    username: str | None
+    email: EmailStr | None
+    password: str | None
     first_name: str | None = None
     last_name: str | None = None
 

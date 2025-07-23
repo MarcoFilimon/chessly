@@ -54,3 +54,9 @@ class PlayerService:
         await session.commit()
         await session.refresh(player)
         return player
+
+
+    async def delete_player(self, id: int, session: AsyncSession):
+        tournament = await self.get_player(id, session)
+        await session.delete(tournament)
+        await session.commit()

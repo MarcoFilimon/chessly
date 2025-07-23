@@ -60,3 +60,13 @@ async def get_players(
     players = await service.get_players(tournament_id, session)
     return players
 
+
+@router.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_player(
+    id: int,
+    session: AsyncSession = Depends(db.get_session)
+):
+    """
+    Delete palyer be ID.
+    """
+    await service.delete_player(id, session)

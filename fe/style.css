@@ -21,3 +21,12 @@ main {
 .modal-overlay.show {
   display: flex; /* Shown when 'show' class is added */
 }
+
+input:disabled,
+button:disabled {
+  background-color: #e5e7eb; /* Tailwind's gray-200 */
+  color: #6b7280; /* Tailwind's gray-500 */
+  opacity: 1; /* Prevent faded look */
+  cursor: not-allowed;
+  border-color: #d1d5db; /* Tailwind's gray-300 */
+}

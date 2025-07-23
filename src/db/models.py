@@ -61,7 +61,7 @@ class Tournament(SQLModel, table=True):
     )
     start_date: date
     end_date: date
-    nb_of_players: int = Field(ge=2, le=64)
+    nb_of_players: int
 
     # ------------------ User relationship -----------------
 

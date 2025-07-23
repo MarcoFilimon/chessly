@@ -14,9 +14,47 @@ let refresh_token: string | null = null;
 let token: string | null = null;
 let currentView: string = 'home';
 let tournaments: any[] = [];
-let currentTournament: any = null;
+
+interface Player {
+    id: number;
+    name: string;
+    rating: number;
+    tournament_id: number;
+}
+
+export enum TournamentStatus {
+    NotStarted = "Not Started",
+    Ongoing = "Ongoing",
+    Finished = "Finished"
+}
+
+export enum TournamentTimeContrl {
+    BULLET = "Bullet",
+    BLITZ = "Blitz",
+    RAPID = "Rapid",
+    CLASICCAL = "Classical"
+}
+
+interface Tournament {
+    id: number;
+    name: string;
+    start_date: string;
+    end_date: string;
+    location: string;
+    nb_of_players: number;
+    time_control: TournamentTimeContrl;
+    format: string;
+    status: TournamentStatus;
+    players: Player[];
+}
+
+let currentTournament: Tournament | null = null;
 
 let nbOfPlayers: number | null = null;
+
+function isTournament(obj: any): obj is Tournament {
+    return obj && typeof obj.id === "number" && typeof obj.status === "string";
+}
 
 // --- FastAPI Configuration ---
 // IMPORTANT: Set this to the base URL of your FastAPI server (e.g., 'http://localhost:8000')
@@ -110,14 +148,13 @@ async function handleLogin(e: Event): Promise<void> {
             currentView = 'home';
             renderApp(); // Re-render after login
         } else {
-            const error = await response.json();
             // Handle Pydantic validation errors (422)
-            if (error.detail && Array.isArray(error.detail)) {
+            if (data.detail && Array.isArray(data.detail)) {
                 // Combine all error messages
-                const messages = error.detail.map((e: any) => e.msg).join('; ');
+                const messages = data.detail.map((e: any) => e.msg).join('; ');
                 throw new Error(messages);
             }
-            throw new Error(error.detail || error.message || 'Login failed.');
+            throw new Error(data.detail || data.message || 'Login failed.');
         }
     } catch (error: any) {
         console.error("Error logging in:", error);
@@ -159,14 +196,13 @@ async function handleSignup(e: Event): Promise<void> {
             currentView = 'home';
             renderApp();
         } else {
-            const error = await response.json();
             // Handle Pydantic validation errors (422)
-            if (error.detail && Array.isArray(error.detail)) {
+            if (data.detail && Array.isArray(data.detail)) {
                 // Combine all error messages
-                const messages = error.detail.map((e: any) => e.msg).join('; ');
+                const messages = data.detail.map((e: any) => e.msg).join('; ');
                 throw new Error(messages);
             }
-            throw new Error(error.detail || error.message || 'Signup failed.');
+            throw new Error(data.detail || data.message || 'Signup failed.');
         }
     } catch (error: any) {
         console.error("Error signing up:", error);
@@ -281,14 +317,17 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
     const tournamentNbOfPlayers = tournamentNbOfPlayersInput.value;
 
    try {
-        const tournamentData = {
+        // Define a type for tournament creation
+        // id , players and status are optional (created/set by the backend)
+        type TournamentCreate = Omit<Tournament, 'id' | 'players' | 'status'>;
+        const tournamentData: TournamentCreate = {
             name: tournamentName,
             start_date: tournamentStartDate,
             end_date: tournamentEndDate,
             location: tournamentLocation,
-            time_control: tournamentTC,
+            time_control: tournamentTC as TournamentTimeContrl,
             format: tournamentFormat,
-            nb_of_players: tournamentNbOfPlayers
+            nb_of_players: Number(tournamentNbOfPlayers)
         };
 
         await createTournament(tournamentData, token!);
@@ -457,15 +496,23 @@ function renderUpdateTournament(): void {
         const format = (document.getElementById('updateTournamentFormat') as HTMLSelectElement).value;
 
         try {
-            const payload = {
-                name,
-                start_date,
-                end_date,
-                location,
-                nb_of_players,
-                time_control,
-                format
+            // Define a type for tournament creation
+            // id , players and status are optional (created/set by the backend)
+            type TournamentCreate = Omit<Tournament, 'id' | 'players' | 'status'>;
+            const payload: TournamentCreate = {
+                name: name,
+                start_date: start_date,
+                end_date: end_date,
+                location: location,
+                time_control: time_control as TournamentTimeContrl,
+                format: format,
+                nb_of_players: Number(nb_of_players)
             };
+
+            if (!isTournament(currentTournament)) {
+                showModal("Tournament not found.");
+                return;
+            }
 
             const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
                 method: 'PUT',
@@ -609,7 +656,20 @@ async function deleteTournament(tournamentId: string, token: string): Promise<vo
     });
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || error.message || 'Failed to delete tournament');
+        throw new Error(error.detail || error.message || 'Failed to delete tournament.');
+    }
+}
+
+async function deletePlayer(playerId: string, token: string): Promise<void> {
+    const response = await fetch(`${fastApiBaseUrl}/player/${playerId}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || error.message || 'Failed to delete palyer.');
     }
 }
 
@@ -818,9 +878,14 @@ function renderTournamentDetail(): void {
                             Back to Tournaments
                         </button>
 
-                        <button id="startTournamentBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
-                            Start Tournament
-                        </button>
+                        ${(currentTournament.status === "Not Started")
+                            ? `<button id="startTournamentBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                                    Start Tournament
+                            </button>`
+                            : `<button id="startTournamentBtn" class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg shadow-md cursor-not-allowed opacity-60" disabled>
+                                    Tournament Already Started
+                            </button>`
+                        }
                     </div>
                 </div>
             </div>
@@ -859,14 +924,20 @@ function renderTournamentDetail(): void {
 
     // Start Tournament button logic
     document.getElementById('startTournamentBtn')?.addEventListener('click', async () => {
+        if (!isTournament(currentTournament)) {
+            showModal("Tournament not found.");
+            return;
+        }
+
         // Check if all players have been created
         const players = currentTournament.players || [];
         if (players.length < currentTournament.nb_of_players) {
             showModal(`You need to add all ${currentTournament.nb_of_players} players before starting the tournament.`);
+            // Switch to Players tab
+            currentView = 'viewTournamentPlayers';
+            renderApp();
             return;
         }
-        if (currentTournament.statuss === "Ongoing")
-        // Update tournament status to ONGOING
         try {
             const payload = { status: "Ongoing" };
             const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
@@ -893,7 +964,109 @@ function renderTournamentDetail(): void {
 }
 
 
-function renderTournamentPlayers(): void {
+function renderUpdatePlayer(playerId: number): void {
+    if (!currentTournament) {
+        showModal("Tournament not found.");
+        currentView = 'viewTournamentPlayers';
+        renderApp();
+        return;
+    }
+
+    const player = currentTournament.players.find(p => p.id === playerId);
+    if (!player) {
+        showModal("Player not found.");
+        return;
+    }
+
+    appContent.innerHTML = `
+        <div class="p-8 max-w-md mx-auto bg-white rounded-lg shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Update Player</h2>
+            <form id="updatePlayerForm" class="space-y-6">
+                <div>
+                    <label for="updatePlayerName" class="block text-gray-700 text-sm font-semibold mb-2">Player Name</label>
+                    <input
+                        type="text"
+                        id="updatePlayerName"
+                        name="name"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value="${player.name || ''}"
+                        required
+                    >
+                </div>
+                <div>
+                    <label for="updatePlayerRating" class="block text-gray-700 text-sm font-semibold mb-2">Rating</label>
+                    <input
+                        type="number"
+                        id="updatePlayerRating"
+                        name="rating"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value="${player.rating || ''}"
+                        required
+                    >
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button type="button" id="cancelUpdatePlayerBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        Update Player
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.getElementById('cancelUpdatePlayerBtn')?.addEventListener('click', () => {
+        currentView = 'viewTournamentPlayers';
+        renderApp();
+    });
+
+    document.getElementById('updatePlayerForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = (document.getElementById('updatePlayerName') as HTMLInputElement).value.trim();
+        const rating = Number((document.getElementById('updatePlayerRating') as HTMLInputElement).value);
+
+        try {
+            const payload = { name, rating };
+            const response = await fetch(`${fastApiBaseUrl}/player/${playerId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                if (error.detail && Array.isArray(error.detail)) {
+                    const messages = error.detail.map((e: any) => e.msg).join('; ');
+                    throw new Error(messages);
+                }
+                throw new Error(error.detail || error.message || 'Failed to update player.');
+            }
+
+            if (!isTournament(currentTournament)) {
+                showModal("Tournament not found.");
+                return;
+            }
+
+            showModal("Player updated successfully!");
+            // Refresh tournament data
+            const tournamentResp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
+            if (tournamentResp.ok) {
+                currentTournament = await tournamentResp.json();
+            }
+            currentView = 'viewTournamentPlayers';
+            renderApp();
+        } catch (error: any) {
+            showModal(`Failed to update player: ${error.message}`);
+        }
+    });
+}
+
+
+async function renderTournamentPlayers(): Promise<void> {
     // Tab button classes
     const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
     const tabActive = "bg-blue-600 text-white";
@@ -934,7 +1107,7 @@ function renderTournamentPlayers(): void {
                     <form id="addPlayerForm" class="flex gap-2 mb-4">
                         <input type="text" id="playerNameInput" class="flex-1 px-1 py-1 border rounded" placeholder="Name" required>
                         <input type="number" id="playerRatingInput" class="flex-1 px-1 py-1 border rounded" placeholder="Rating" required>
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded">Add Player</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded" id="addPlayerButton">Add Player</button>
                     </form>
                     <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
                         Back to Tournaments
@@ -943,15 +1116,34 @@ function renderTournamentPlayers(): void {
             </div>
         `;
 
+    if (!isTournament(currentTournament)) {
+        showModal("Tournament not found.");
+        return;
+    }
+
     // Render players in the table
     const playerTableBody = document.getElementById('playerTableBody');
     if (playerTableBody) {
         playerTableBody.innerHTML = (currentTournament.players || [])
-            .map((player: any, idx: number) =>
+            .map((player: Player, idx: number) =>
                 `<tr>
                     <td class="px-4 py-2 border-b">${idx + 1}</td>
                     <td class="px-4 py-2 border-b">${player.name}</td>
-                    <td class="px-4 py-2 border-b">${player.rating}</td>
+                    <td class="px-4 py-2 border-b flex items-center justify-between">
+                        <span>${player.rating}</span>
+                        <span class="flex gap-2 ml-4">
+                            <button type="button" class="update-player-btn" data-player-id="${player.id}" title="Update">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.293-6.293a1 1 0 011.414 0l3.586 3.586a1 1 0 010 1.414L13 17H9v-4z" />
+                                </svg>
+                            </button>
+                            <button type="button" class="delete-player-btn" data-player-id="${player.id}" title="Delete">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 hover:text-red-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </span>
+                    </td>
                 </tr>`
             ).join('');
     }
@@ -967,21 +1159,45 @@ function renderTournamentPlayers(): void {
     // Add player handler
     document.getElementById('addPlayerForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        if (!isTournament(currentTournament)) {
+            showModal("Tournament not found.");
+            return;
+        }
+
+        // Check if max players reached. Disable the add button.
+        const addPlayerButton = document.getElementById('addPlayerButton') as HTMLButtonElement | null;
+        if (addPlayerButton && isTournament(currentTournament)) {
+            const playersCount = currentTournament.players?.length ?? 0;
+            if (playersCount >= currentTournament.nb_of_players) {
+                addPlayerButton.disabled = true;
+                addPlayerButton.classList.add('bg-gray-400', 'text-gray-600', 'cursor-not-allowed', 'opacity-60');
+                addPlayerButton.textContent = "Max Players Reached";
+            } else {
+                addPlayerButton.disabled = false;
+                addPlayerButton.classList.remove('bg-gray-400', 'text-gray-600', 'cursor-not-allowed', 'opacity-60');
+                addPlayerButton.textContent = "Add Player";
+            }
+        }
+
         const playerNameInput = document.getElementById('playerNameInput') as HTMLInputElement;
         const playerRatingInput = document.getElementById('playerRatingInput') as HTMLInputElement;
 
         const playerName = playerNameInput.value.trim();
         const playerRating = playerRatingInput.value.trim();
+
         if (!playerName) return;
 
         try {
-            const playerData = {
+            type PlayerCreate = Omit<Player, 'id'>;
+            const playerData: PlayerCreate = {
                 name: playerName,
-                rating: playerRating,
+                rating: Number(playerRating),
                 tournament_id: currentTournament.id
             };
             await addPlayerToTournament(playerData, token!);
 
+            // Fetch updated tournament data
             const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
             if (!response.ok) {
                 const error = await response.json();
@@ -994,6 +1210,38 @@ function renderTournamentPlayers(): void {
         } catch (error: any) {
             showModal(`Failed to create player: ${error.message}`)
         }
+    });
+
+
+    // Add event listeners for update and delete buttons
+    document.querySelectorAll('.delete-player-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const playerId = (btn as HTMLElement).getAttribute('data-player-id');
+            if (!playerId) return;
+            if (!confirm('Are you sure you want to delete this player?')) return;
+            try {
+                await deletePlayer(playerId, token!);
+                showModal('Player deleted successfully!');
+                // Fetch updated tournament data
+                const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament!.id}`);
+                if (response.ok) {
+                    currentTournament = await response.json();
+                }
+                await renderTournamentPlayers();
+            } catch (error: any) {
+                showModal(`Failed to delete player: ${error.message}`);
+            }
+
+        });
+    });
+
+    document.querySelectorAll('.update-player-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const playerId = Number((btn as HTMLElement).getAttribute('data-player-id'));
+            renderUpdatePlayer(playerId);
+        });
     });
 
     // Tab navigation handlers
@@ -1060,7 +1308,7 @@ async function renderTournamentGames(): Promise<void> {
                 <h3 class="text-xl font-semibold mb-2">Games</h3>
                 <p class="mb-4 text-gray-600">
                 ${
-                    currentTournament.status === "Not Started" || currentTournament.status === "NOT STARTED"
+                    currentTournament.status === "Not Started"
                         ? "Once the tournament starts, the rounds will be generated."
                         : ""
                 }
