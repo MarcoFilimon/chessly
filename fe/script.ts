@@ -50,7 +50,8 @@ interface Tournament {
 
 let currentTournament: Tournament | null = null;
 
-let nbOfPlayers: number | null = null;
+let playerSortColumn: 'name' | 'rating' = 'name';
+let playerSortDirection: 'asc' | 'desc' = 'asc';
 
 function isTournament(obj: any): obj is Tournament {
     return obj && typeof obj.id === "number" && typeof obj.status === "string";
@@ -1095,8 +1096,14 @@ async function renderTournamentPlayers(): Promise<void> {
                             <thead>
                                 <tr>
                                     <th class="px-4 py-2 border-b text-left">Nb</th>
-                                    <th class="px-4 py-2 border-b text-left">Name</th>
-                                    <th class="px-4 py-2 border-b text-left">Rating</th>
+                                    <th class="px-4 py-2 border-b text-left cursor-pointer" id="sortByName">
+                                        Name
+                                        ${playerSortColumn === 'name' ? (playerSortDirection === 'asc' ? '▲' : '▼') : ''}
+                                    </th>
+                                    <th class="px-4 py-2 border-b text-left cursor-pointer" id="sortByRating">
+                                        Rating
+                                        ${playerSortColumn === 'rating' ? (playerSortDirection === 'asc' ? '▲' : '▼') : ''}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="playerTableBody">
@@ -1121,10 +1128,23 @@ async function renderTournamentPlayers(): Promise<void> {
         return;
     }
 
+    let sortedPlayers = [...(currentTournament.players || [])];
+    sortedPlayers.sort((a, b) => {
+        if (playerSortColumn === 'name') {
+            return playerSortDirection === 'asc'
+                ? a.name.localeCompare(b.name)
+                : b.name.localeCompare(a.name);
+        } else {
+            return playerSortDirection === 'asc'
+                ? a.rating - b.rating
+                : b.rating - a.rating;
+        }
+    });
+
     // Render players in the table
     const playerTableBody = document.getElementById('playerTableBody');
     if (playerTableBody) {
-        playerTableBody.innerHTML = (currentTournament.players || [])
+        playerTableBody.innerHTML = sortedPlayers
             .map((player: Player, idx: number) =>
                 `<tr>
                     <td class="px-4 py-2 border-b">${idx + 1}</td>
@@ -1151,10 +1171,29 @@ async function renderTournamentPlayers(): Promise<void> {
     // Render players (if any)
     const playerList = document.getElementById('playerList');
     if (playerList) {
-        playerList.innerHTML = (currentTournament.players || [])
+        playerList.innerHTML = sortedPlayers
             .map((player: any) => `<li>${player.name} (Rating: ${player.rating})</li>`)
             .join('');
     }
+
+    document.getElementById('sortByName')?.addEventListener('click', () => {
+    if (playerSortColumn === 'name') {
+        playerSortDirection = playerSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        playerSortColumn = 'name';
+        playerSortDirection = 'asc';
+    }
+    renderTournamentPlayers();
+    });
+    document.getElementById('sortByRating')?.addEventListener('click', () => {
+        if (playerSortColumn === 'rating') {
+            playerSortDirection = playerSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            playerSortColumn = 'rating';
+            playerSortDirection = 'asc';
+        }
+        renderTournamentPlayers();
+    });
 
     // Add player handler
     document.getElementById('addPlayerForm')?.addEventListener('submit', async (e) => {

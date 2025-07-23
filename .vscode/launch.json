@@ -5,9 +5,9 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Debug FE (Firefox)",
       "type": "firefox",
       "request": "launch",
-      "name": "Debug Frontend in Firefox",
       "url": "http://localhost:8000/fe/index.html", // Adjust if your frontend runs elsewhere
       "webRoot": "${workspaceFolder}/fe",
       "reloadOnAttach": true

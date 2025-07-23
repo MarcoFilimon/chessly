@@ -44,6 +44,7 @@ class TournamentValidatorMixin(BaseModel):
             raise ValueError("Minimum number of 2 players needed.")
         if v > 64:
             raise ValueError("Maximum number of 64 players exceeded.")
+        return v
 
 
 class TournamentBase(TournamentValidatorMixin):
