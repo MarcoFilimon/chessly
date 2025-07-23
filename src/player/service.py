@@ -23,7 +23,10 @@ class PlayerService:
         return result.all()
 
     async def create_player(self, tournament_id: int, payload: PlayerCreate, session: AsyncSession):
-        statement = select(Player).where(Player.name == payload.name)
+        statement = select(Player).where(
+            (Player.name == payload.name) &
+            (Player.tournament_id == tournament_id)
+        )
         result = await session.exec(statement)
         player = result.first()
         if player:
@@ -60,3 +63,10 @@ class PlayerService:
         tournament = await self.get_player(id, session)
         await session.delete(tournament)
         await session.commit()
+
+    async def delete_players(self, tournament_id: int, session: AsyncSession):
+        players = await session.exec(select(Player).where(Player.tournament_id == tournament_id))
+        for player in players:
+            await session.delete(player)
+        await session.commit()
+        return

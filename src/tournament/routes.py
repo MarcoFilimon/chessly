@@ -119,3 +119,17 @@ async def update_round_result(
     '''
     tournament = await service.update_results(id, round_number, payload, session)
     return tournament
+
+
+@router.post('/{id}/generate_players', response_model=Tournament, status_code=status.HTTP_200_OK)
+async def start_tournament(
+    id: int,
+    _ : bool = Depends(full_access),
+    session: AsyncSession = Depends(db.get_session)
+):
+    """
+    Generate all players for a given tournament.
+    Random names with random ratings.
+    """
+    tournament = await service.generate_players(id, session)
+    return tournament

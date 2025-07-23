@@ -4,6 +4,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models import Tournament, User, Round, Matchup, Player
 from .schemas import TournamentCreate, TournamentUpdate, RoundResult
 from src.utils.enums import Status, Format, Result
+import random
 
 from src.utils.errors import (
     TournamentNotFound,
@@ -11,6 +12,10 @@ from src.utils.errors import (
     InsufficientPermission,
     TournamentStarted
 )
+
+from src.player.schemas import PlayerCreate
+from src.player.service import PlayerService
+player_service = PlayerService()
 
 def berger_table_pairings(player_ids, double_round_robin=False):
     n = len(player_ids)
@@ -175,4 +180,16 @@ class TournamentService:
 
         await session.commit()
         await session.refresh(tournament)
+        return tournament
+
+    async def generate_players(self, tournament_id: int, session: AsyncSession):
+        tournament = await self.get_tournament(tournament_id, session)
+        nb_of_players = tournament.nb_of_players
+
+        i = 1
+        while i <= nb_of_players:
+            payload = PlayerCreate(name=f"Player#{i}", rating=random.randint(400,4000))
+            _ = await player_service.create_player(tournament_id, payload, session)
+            i += 1
+
         return tournament

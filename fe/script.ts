@@ -51,6 +51,13 @@ interface Tournament {
 
 let currentTournament: Tournament | null = null;
 
+interface Matchup {
+    id: number;
+    white_player: Player;
+    black_player: Player;
+    result?: string;
+}
+
 let selectedRoundIdx: number = 0;
 let playerSortColumn: 'name' | 'rating' = 'name';
 let playerSortDirection: 'asc' | 'desc' = 'asc';
@@ -153,7 +160,6 @@ async function handleLogin(e: Event): Promise<void> {
             localStorage.setItem('chessTournamentEmail', userEmail as string);
             localStorage.setItem('chessTournamentRefreshToken', refresh_token as string);
             localStorage.setItem('chessTournamentToken', token as string);
-            // showModal(data.message);
             currentView = 'home';
             renderApp(); // Re-render after login
         } else {
@@ -304,10 +310,6 @@ async function addPlayerToTournament(payload: any, token: string): Promise<any> 
 
 async function handleSubmitNewTournament(e: Event): Promise<void> {
     e.preventDefault();
-    if (!userId) {
-        showModal("User not logged in. Please log in to create a tournament.");
-        return;
-    }
 
     const tournamentNameInput = document.getElementById('tournamentName') as HTMLInputElement;
     const tournamentStartDateInput = document.getElementById('tournamentStartDate') as HTMLInputElement;
@@ -340,9 +342,6 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
         };
 
         await createTournament(tournamentData, token!);
-
-        showModal("Tournament created successfully!");
-
         currentView = 'viewTournaments';
         renderApp();
     } catch (error: any) {
@@ -643,7 +642,10 @@ function renderCreateTournament(): void {
                             Cancel
                         </button>
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                            Create Tournament
+                            Create
+                        </button>
+                        <button id="generateTournament" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                        Generate
                         </button>
                     </div>
                 </form>
@@ -654,6 +656,19 @@ function renderCreateTournament(): void {
     `;
     document.getElementById('cancelCreateBtn')?.addEventListener('click', () => { currentView = 'home'; renderApp(); });
     document.getElementById('createTournamentForm')?.addEventListener('submit', handleSubmitNewTournament);
+
+    document.getElementById('generateTournament')?.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    // Fill form fields with random data
+    (document.getElementById('tournamentName') as HTMLInputElement).value = `Chessly Cup ${Math.floor(Math.random() * 1000)}`;
+    (document.getElementById('tournamentStartDate') as HTMLInputElement).value = new Date().toISOString().slice(0, 10);
+    (document.getElementById('tournamentEndDate') as HTMLInputElement).value = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    (document.getElementById('tournamentLocation') as HTMLInputElement).value = ["Online", "New York", "London", "Paris", "Berlin"][Math.floor(Math.random() * 5)];
+    (document.getElementById('tournamentNbofPlayers') as HTMLInputElement).value = String(Math.floor(Math.random() * 10) + 2);
+    (document.getElementById('tournamentTimeControl') as HTMLSelectElement).value = ["Bullet", "Blitz", "Rapid", "Classical"][Math.floor(Math.random() * 4)];
+    (document.getElementById('tournamentFormat') as HTMLSelectElement).value = ["Round-Robin", "Double-Round-Robin"][Math.floor(Math.random() * 2)];
+});
 }
 
 async function deleteTournament(tournamentId: string, token: string): Promise<void> {
@@ -678,7 +693,20 @@ async function deletePlayer(playerId: string, token: string): Promise<void> {
     });
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.detail || error.message || 'Failed to delete palyer.');
+        throw new Error(error.detail || error.message || 'Failed to delete player.');
+    }
+}
+
+async function deleteAllPlayers(currentTournamentId: number, token: string): Promise<void> {
+    const response = await fetch(`${fastApiBaseUrl}/player/tournament/${currentTournamentId}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || error.message || 'Failed to delete players.');
     }
 }
 
@@ -820,7 +848,6 @@ async function renderViewTournaments(): Promise<void> {
             if (!confirm('Are you sure you want to delete this tournament?')) return;
             try {
                 await deleteTournament(tournamentId, token!);
-                showModal('Tournament deleted successfully!');
                 // Refresh the tournaments list
                 await renderViewTournaments();
             } catch (error: any) {
@@ -887,7 +914,7 @@ function renderTournamentDetail(): void {
                         <p class="mb-2"><strong>Format:</strong> ${currentTournament.format}</p>
                         <p class="mb-2"><strong>Status:</strong> ${currentTournament.status}</p>
                         <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
-                            Back to Tournaments
+                            Back
                         </button>
 
                         ${(currentTournament.status === "Not Started")
@@ -1128,6 +1155,12 @@ async function renderTournamentPlayers(): Promise<void> {
                     <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
                         Back to Tournaments
                     </button>
+                    <button id="generateTournamentPlayers" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                        Generate
+                    </button>
+                    <button id="deleteAllTournamentPlayers" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                        Delete all
+                    </button>
                 </div>
             </div>
         `;
@@ -1159,8 +1192,10 @@ async function renderTournamentPlayers(): Promise<void> {
                     <td class="px-4 py-2 border-b">${idx + 1}</td>
                     <td class="px-4 py-2 border-b">${player.name}</td>
                     <td class="px-4 py-2 border-b flex items-center justify-between">
-                        <span>${player.rating}</span>
-                        <span class="flex gap-2 ml-4">
+                    <span>${player.rating}</span>
+                    ${
+                        currentTournament?.status === TournamentStatus.NotStarted
+                        ? `<span class="flex gap-2 ml-4">
                             <button type="button" class="update-player-btn" data-player-id="${player.id}" title="Update">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.293-6.293a1 1 0 011.414 0l3.586 3.586a1 1 0 010 1.414L13 17H9v-4z" />
@@ -1171,7 +1206,9 @@ async function renderTournamentPlayers(): Promise<void> {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
-                        </span>
+                        </span>`
+                        : ""
+                    }
                     </td>
                 </tr>`
             ).join('');
@@ -1186,14 +1223,15 @@ async function renderTournamentPlayers(): Promise<void> {
     }
 
     document.getElementById('sortByName')?.addEventListener('click', () => {
-    if (playerSortColumn === 'name') {
-        playerSortDirection = playerSortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-        playerSortColumn = 'name';
-        playerSortDirection = 'asc';
-    }
-    renderTournamentPlayers();
+        if (playerSortColumn === 'name') {
+            playerSortDirection = playerSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            playerSortColumn = 'name';
+            playerSortDirection = 'asc';
+        }
+        renderTournamentPlayers();
     });
+
     document.getElementById('sortByRating')?.addEventListener('click', () => {
         if (playerSortColumn === 'rating') {
             playerSortDirection = playerSortDirection === 'asc' ? 'desc' : 'asc';
@@ -1261,6 +1299,58 @@ async function renderTournamentPlayers(): Promise<void> {
     });
 
 
+    // Generate players
+    document.getElementById('generateTournamentPlayers')?.addEventListener('click', async (e) => {
+        if (!isTournament(currentTournament)) {
+            showModal("Tournament not found.");
+            return;
+        }
+        try {
+            const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}/generate_players`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || error.message || 'Failed to generate players.');
+            }
+
+            const tournamentResp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
+            if (tournamentResp.ok) {
+                currentTournament = await tournamentResp.json();
+            }
+            renderTournamentPlayers();
+        } catch (error: any) {
+            showModal(`Failed to generate players: ${error.message}`);
+        }
+    });
+
+
+    document.getElementById('deleteAllTournamentPlayers')?.addEventListener('click', async (e) => {
+        if (!isTournament(currentTournament)) {
+            showModal("Tournament not found.");
+            return;
+        }
+        if (!confirm('Are you sure you want to delete all players?')) return;
+        try {
+            await deleteAllPlayers(currentTournament.id, token!);
+            showModal("Players deleted successfully!");
+
+            const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
+            if (response.ok) {
+                currentTournament = await response.json();
+            }
+            renderTournamentPlayers();
+        } catch (error: any) {
+            showModal(`Failed to delete players: ${error.message}`);
+        }
+    });
+
+
+
     // Add event listeners for update and delete buttons
     document.querySelectorAll('.delete-player-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -1271,7 +1361,7 @@ async function renderTournamentPlayers(): Promise<void> {
             try {
                 await deletePlayer(playerId, token!);
                 showModal('Player deleted successfully!');
-                // Fetch updated tournament data
+
                 const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament!.id}`);
                 if (response.ok) {
                     currentTournament = await response.json();
@@ -1344,7 +1434,7 @@ async function renderTournamentGames(): Promise<void> {
                     class="${tabBase} ${selectedRoundIdx === idx ? tabActive : tabInactive}"
                     id="roundTab${idx}"
                     style="min-width: 120px;">
-                    R. ${round.round_number}
+                    #${round.round_number}
                 </button>
             `;
         });
@@ -1361,25 +1451,25 @@ async function renderTournamentGames(): Promise<void> {
                 <thead>
                     <tr>
                         <th class="px-4 py-2 border-b text-center">Board</th>
-                        <th class="px-4 py-2 border-b text-left">White</th>
+                        <th class="px-4 py-2 border-b text-center">White</th>
                         <th class="px-4 py-2 border-b text-center">Result</th>
-                        <th class="px-4 py-2 border-b text-left">Black</th>
+                        <th class="px-4 py-2 border-b text-center">Black</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${round.matchups.map((m, idx) => `
+                    ${round.matchups.map((m: Matchup, idx: number) => `
                         <tr>
                             <td class="px-4 py-2 border-b text-center">${idx + 1}</td>
-                            <td class="px-4 py-2 border-b text-left">${m.white_player.name}</td>
+                            <td class="px-4 py-2 border-b text-center">${m.white_player.name}</td>
                             <td class="px-4 py-2 border-b text-center">
-                                <select class="result-select" data-matchup-id="${m.id}">
+                                <select class="result-select text-center" data-matchup-id="${m.id}" style="text-align-last: center;">
                                     <option value="" ${!m.result ? "selected" : ""}>Select</option>
                                     <option value="White-Wins" ${m.result === "White-Wins" ? "selected" : ""}>1 - 0</option>
                                     <option value="Black-Wins" ${m.result === "Black-Wins" ? "selected" : ""}>0 - 1</option>
-                                    <option value="Draw" ${m.result === "Draw" ? "selected" : ""}>1 / 2</option>
+                                    <option value="Draw" ${m.result === "Draw" ? "selected" : ""}> ½ - ½ </option>
                                 </select>
                             </td>
-                            <td class="px-4 py-2 border-b text-left">${m.black_player.name}</td>
+                            <td class="px-4 py-2 border-b text-center">${m.black_player.name}</td>
                         </tr>
                     `).join('')}
                 </tbody>
