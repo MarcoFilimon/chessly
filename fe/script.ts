@@ -75,6 +75,12 @@ function closeModal(): void {
 modalCloseBtn.addEventListener('click', closeModal);
 
 
+function formatDate(dateStr: string): string {
+    // Assumes dateStr is "yyyy-mm-dd"
+    const [year, month, day] = dateStr.split("-");
+    return `${day}-${month}-${year}`;
+}
+
 async function apiFetch(input: RequestInfo, init: RequestInit = {}, retry = true): Promise<Response> {
     // Attach token if available
     if (token) {
@@ -723,23 +729,26 @@ async function renderViewTournaments(): Promise<void> {
                             <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 cursor-pointer tournament-card"
                             data-tournament-id="${tournament.id}">
                                 <h3 class="text-xl font-semibold text-gray-800 mb-2">${tournament.name}</h3>
-                                <p class="text-gray-600 text-sm mb-1"><strong>Start:</strong> ${tournament.start_date}</p>
-                                <p class="text-gray-600 text-sm mb-1"><strong>End:</strong> ${tournament.end_date}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>Start:</strong> ${formatDate(tournament.start_date)}</p>
+                                <p class="text-gray-600 text-sm mb-1"><strong>End:</strong> ${formatDate(tournament.end_date)}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Nb. of Players:</strong> ${tournament.nb_of_players}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Time Control:</strong> ${tournament.time_control}</p>
                                 <p class="text-gray-600 text-sm mb-1"><strong>Format:</strong> ${tournament.format}</p>
                                 <div class="mt-4 flex gap-4">
-                                    <button type="button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded shadow-sm cursor-pointer transition duration-200 delete-tournament-btn" data-tournament-id="${tournament.id}">
-                                        Delete
+                                    ${(tournament.status === "Not Started") ? `
+                                    <button type="button" class="update-tournament-btn" data-tournament-id="${tournament.id}" title="Update">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.293-6.293a1 1 0 011.414 0l3.586 3.586a1 1 0 010 1.414L13 17H9v-4z" />
+                                        </svg>
                                     </button>
-
-                                    ${(tournament.status === "Not Started")
-                                    ? `<button type="button" class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded shadow-sm cursor-pointer transition duration-200 update-tournament-btn" data-tournament-id="${tournament.id}">
-                                        Update
-                                    </button>`
-                                    : ""
-                                }
+                                    ` : ""
+                                    }
+                                    <button type="button" class="delete-tournament-btn"  data-tournament-id="${tournament.id}" title="Delete">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 hover:text-red-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         `).join('')}
@@ -868,8 +877,8 @@ function renderTournamentDetail(): void {
                     </div>
                     <div id="tournamentDetailContent">
                         <h2 class="text-2xl font-bold text-gray-800 mb-4">${currentTournament.name}</h2>
-                        <p class="mb-2"><strong>Start:</strong> ${currentTournament.start_date}</p>
-                        <p class="mb-2"><strong>End:</strong> ${currentTournament.end_date}</p>
+                        <p class="mb-2"><strong>Start:</strong> ${formatDate(currentTournament.start_date)}</p>
+                        <p class="mb-2"><strong>End:</strong> ${formatDate(currentTournament.end_date)}</p>
                         <p class="mb-2"><strong>Location:</strong> ${currentTournament.location}</p>
                         <p class="mb-2"><strong>Nb. Of Players:</strong> ${currentTournament.nb_of_players}</p>
                         <p class="mb-2"><strong>Time Control:</strong> ${currentTournament.time_control}</p>
@@ -1095,7 +1104,7 @@ async function renderTournamentPlayers(): Promise<void> {
                         <table class="min-w-full bg-white border border-gray-200 rounded-lg">
                             <thead>
                                 <tr>
-                                    <th class="px-4 py-2 border-b text-left">Nb</th>
+                                    <th class="px-4 py-2 border-b text-left">#</th>
                                     <th class="px-4 py-2 border-b text-left cursor-pointer" id="sortByName">
                                         Name
                                         ${playerSortColumn === 'name' ? (playerSortDirection === 'asc' ? '▲' : '▼') : ''}
@@ -1348,7 +1357,7 @@ async function renderTournamentGames(): Promise<void> {
                 <p class="mb-4 text-gray-600">
                 ${
                     currentTournament.status === "Not Started"
-                        ? "Once the tournament starts, the rounds will be generated."
+                        ? "Once the tournament starts, the rounds will be generated. -> TO BE IMPLEMENTED !"
                         : ""
                 }
                 </p>
@@ -1390,7 +1399,6 @@ async function renderTournamentGames(): Promise<void> {
     });
 }
 
-
 async function renderTournamentResults(): Promise<void> {
     if (!currentTournament) {
         showModal("Tournament not found.");
@@ -1404,8 +1412,40 @@ async function renderTournamentResults(): Promise<void> {
     const tabActive = "bg-blue-600 text-white";
     const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
 
+    // Calculate number of rounds
+    let numRounds = 0;
+    if (currentTournament.format === "Round-Robin") {
+        numRounds = currentTournament.nb_of_players - 1;
+    } else if (currentTournament.format === "Double-Round-Robin") {
+        numRounds = (currentTournament.nb_of_players * 2) - 1;
+    }
+
+    // Build table headers
+    let roundHeaders = "";
+    for (let i = 1; i <= numRounds; i++) {
+        roundHeaders += `<th class="px-4 py-2 border-b text-center">R${i}</th>`;
+    }
+
+    // Build table rows
+    let playerRows = "";
+    (currentTournament.players || []).forEach((player, idx) => {
+        let roundCells = "";
+        for (let r = 1; r <= numRounds; r++) {
+            // Placeholder for result, you can replace with actual data if available
+            roundCells += `<td class="px-4 py-2 border-b text-center">-</td>`;
+        }
+        playerRows += `
+            <tr>
+                <td class="px-4 py-2 border-b text-center">${idx + 1}</td>
+                <td class="px-4 py-2 border-b text-left">${player.name}</td>
+                <td class="px-4 py-2 border-b text-center">${player.rating}</td>
+                ${roundCells}
+            </tr>
+        `;
+    });
+
     appContent.innerHTML = `
-        <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
+        <div class="p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
             <div class="flex gap-2 mb-6">
                 <button id="descTab" class="${tabBase} ${currentView === 'viewTournamentDetail' ? tabActive : tabInactive}">
                     Description
@@ -1422,7 +1462,21 @@ async function renderTournamentResults(): Promise<void> {
             </div>
             <div id="tournamentDetailContent">
                 <h3 class="text-xl font-semibold mb-2">Results</h3>
-                <p class="mb-4 text-gray-600">Results coming soon...</p>
+                <div class="overflow-x-auto mb-4">
+                    <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 border-b text-center">#</th>
+                                <th class="px-4 py-2 border-b text-left">Name</th>
+                                <th class="px-4 py-2 border-b text-center">Rating</th>
+                                ${roundHeaders}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${playerRows}
+                        </tbody>
+                    </table>
+                </div>
                 <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
                     Back to Tournaments
                 </button>
