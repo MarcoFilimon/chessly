@@ -95,6 +95,10 @@ class TournamentAlreadyExists(Exception):
     """Tournament with this name already exists."""
     pass
 
+class TournamentStarted(Exception):
+    """Tournament already started or finished."""
+    pass
+
 
 
 def create_exception_handler(
@@ -279,6 +283,16 @@ def register_all_errors(app: FastAPI):
             initial_detail={
                 "message": "Tournament with this name already exists.",
                 "error_code": "tournament_name_not_unique",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        TournamentStarted,
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "message": "Tournament already started or finished.",
+                "error_code": "tournament_already_started",
             },
         ),
     )

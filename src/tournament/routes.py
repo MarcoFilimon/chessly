@@ -91,3 +91,31 @@ async def delete_tournament(
     Delete tournament be ID.
     """
     await service.delete_tournament(id, session)
+
+
+@router.post('/{id}/start', response_model=Tournament, status_code=status.HTTP_200_OK)
+async def start_tournament(
+    id: int,
+    _ : bool = Depends(full_access),
+    session: AsyncSession = Depends(db.get_session)
+):
+    """
+    Start tournament: set status to Ongoing and generate all round pairings.
+    """
+    tournament = await service.start_tournament(id, session)
+    return tournament
+
+
+@router.put('/{id}/round_result/{round_number}', response_model=Tournament, status_code=status.HTTP_200_OK)
+async def update_round_result(
+    id: int,
+    round_number: int,
+    payload: RoundResult,
+    _ : bool = Depends(full_access),
+    session: AsyncSession = Depends(db.get_session)
+):
+    '''
+    Update the results of a certain round.
+    '''
+    tournament = await service.update_results(id, round_number, payload, session)
+    return tournament

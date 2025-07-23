@@ -30,3 +30,12 @@ button:disabled {
   cursor: not-allowed;
   border-color: #d1d5db; /* Tailwind's gray-300 */
 }
+
+/* Add to your global CSS */
+.flex-nowrap::-webkit-scrollbar {
+  height: 6px;
+}
+.flex-nowrap::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}

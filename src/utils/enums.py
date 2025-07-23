@@ -23,6 +23,7 @@ class Format(Enum):
 
 @unique
 class Result(Enum):
+    NO_RESULT = "No-Result"
     WHITE_WINS = "White-Wins"
     BLACK_WINS = "Black-Wins"
     DRAW = "Draw"

@@ -151,11 +151,11 @@ class Matchup(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
     result: Result = Field(
-        default=Result.DRAW, #  ensures the python obj gets the default
+        default=Result.NO_RESULT, #  ensures the python obj gets the default
         sa_column=sa.Column(
             sa.Enum(Result, name="result", native_enum=False),
             nullable=True,
-            server_default=Result.DRAW.value # ensures the db sets the default if not provided
+            server_default=Result.NO_RESULT.value # ensures the db sets the default if not provided
         )
     )
 

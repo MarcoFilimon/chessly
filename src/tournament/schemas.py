@@ -1,7 +1,23 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
 from src.utils.enums import *
-from src.db.models import Player
+
+class PlayerRead(BaseModel):
+    id: int
+    name: str
+    rating: int
+    # Add other fields as needed
+
+class MatchupRead(BaseModel):
+    id: int
+    white_player: PlayerRead
+    black_player: PlayerRead
+    result: str | None = None
+
+class RoundRead(BaseModel):
+    id: int
+    round_number: int
+    matchups: list[MatchupRead] | None = None
 
 
 class TournamentValidatorMixin(BaseModel):
@@ -75,4 +91,14 @@ class TournamentUpdate(TournamentValidatorMixin):
 
 class Tournament(TournamentBase):
     id: int
-    players: list[Player] | None = None
+    players: list[PlayerRead] | None = None
+    rounds: list[RoundRead] | None = None
+
+
+class Result(BaseModel):
+    matchupId: int
+    result: Result
+
+
+class RoundResult(BaseModel):
+    results: list[Result]
