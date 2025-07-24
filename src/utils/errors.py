@@ -99,6 +99,9 @@ class TournamentStarted(Exception):
     """Tournament already started or finished."""
     pass
 
+class TournamentNotFinished(Exception):
+    """Not all games have results. Cannot finish the tournament."""
+    pass
 
 
 def create_exception_handler(
@@ -293,6 +296,16 @@ def register_all_errors(app: FastAPI):
             initial_detail={
                 "message": "Tournament already started or finished.",
                 "error_code": "tournament_already_started",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        TournamentNotFinished,
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "message": "Not all games have a result.",
+                "error_code": "tournament_cannot_finish",
             },
         ),
     )

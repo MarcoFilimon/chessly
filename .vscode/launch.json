@@ -13,7 +13,7 @@
       "reloadOnAttach": true
     },
     {
-      "name": "Python Debugger: FastAPI",
+      "name": "FastAPI",
       "type": "debugpy",
       "request": "launch",
       "module": "fastapi",

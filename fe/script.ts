@@ -341,8 +341,8 @@ async function handleSubmitNewTournament(e: Event): Promise<void> {
             nb_of_players: Number(tournamentNbOfPlayers)
         };
 
-        await createTournament(tournamentData, token!);
-        currentView = 'viewTournaments';
+        currentTournament = await createTournament(tournamentData, token!);
+        currentView = 'viewTournamentDetail';
         renderApp();
     } catch (error: any) {
         // console.error("Error adding tournament:", error);
@@ -641,11 +641,11 @@ function renderCreateTournament(): void {
                         <button type="button" id="cancelCreateBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out">
                             Cancel
                         </button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                            Create
-                        </button>
                         <button id="generateTournament" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
                         Generate
+                        </button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                            Create
                         </button>
                     </div>
                 </form>
@@ -664,7 +664,7 @@ function renderCreateTournament(): void {
     (document.getElementById('tournamentName') as HTMLInputElement).value = `Chessly Cup ${Math.floor(Math.random() * 1000)}`;
     (document.getElementById('tournamentStartDate') as HTMLInputElement).value = new Date().toISOString().slice(0, 10);
     (document.getElementById('tournamentEndDate') as HTMLInputElement).value = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    (document.getElementById('tournamentLocation') as HTMLInputElement).value = ["Online", "New York", "London", "Paris", "Berlin"][Math.floor(Math.random() * 5)];
+    (document.getElementById('tournamentLocation') as HTMLInputElement).value = ["Online", "Iasi", "Bucuresti", "Galati"][Math.floor(Math.random() * 4)];
     (document.getElementById('tournamentNbofPlayers') as HTMLInputElement).value = String(Math.floor(Math.random() * 10) + 2);
     (document.getElementById('tournamentTimeControl') as HTMLSelectElement).value = ["Bullet", "Blitz", "Rapid", "Classical"][Math.floor(Math.random() * 4)];
     (document.getElementById('tournamentFormat') as HTMLSelectElement).value = ["Round-Robin", "Double-Round-Robin"][Math.floor(Math.random() * 2)];
@@ -768,14 +768,14 @@ async function renderViewTournaments(): Promise<void> {
                                 <div class="mt-4 flex gap-4">
                                     ${(tournament.status === "Not Started") ? `
                                     <button type="button" class="update-tournament-btn" data-tournament-id="${tournament.id}" title="Update">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.293-6.293a1 1 0 011.414 0l3.586 3.586a1 1 0 010 1.414L13 17H9v-4z" />
                                         </svg>
                                     </button>
                                     ` : ""
                                     }
-                                    <button type="button" class="delete-tournament-btn"  data-tournament-id="${tournament.id}" title="Delete">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 hover:text-red-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <button type="button" class="delete-tournament-btn" data-tournament-id="${tournament.id}" title="Delete">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500 hover:text-red-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
@@ -786,12 +786,22 @@ async function renderViewTournaments(): Promise<void> {
                 `;
             }
 
+            const notStartedCount = tournaments.filter(t => normalizeStatus(t.status) === "notstarted").length;
+            const ongoingCount = tournaments.filter(t => normalizeStatus(t.status) === "ongoing").length;
+            const finishedCount = tournaments.filter(t => normalizeStatus(t.status) === "finished").length;
+
             // Tabs HTML
             tournamentsHtml = `
                 <div class="flex gap-2 mb-6">
-                    <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">Not Started</button>
-                    <button id="ongoingTab" class="${tabBase} ${tournamentTab === 'Ongoing' ? tabActive : tabInactive}">Ongoing</button>
-                    <button id="finishedTab" class="${tabBase} ${tournamentTab === 'Finished' ? tabActive : tabInactive}">Finished</button>
+                    <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">
+                        Not Started (${notStartedCount})
+                    </button>
+                    <button id="ongoingTab" class="${tabBase} ${tournamentTab === 'Ongoing' ? tabActive : tabInactive}">
+                        Ongoing (${ongoingCount})
+                    </button>
+                    <button id="finishedTab" class="${tabBase} ${tournamentTab === 'Finished' ? tabActive : tabInactive}">
+                        Finished (${finishedCount})
+                    </button>
                 </div>
                 ${tournamentsHtml}
             `;
@@ -920,10 +930,12 @@ function renderTournamentDetail(): void {
                         ${(currentTournament.status === "Not Started")
                             ? `<button id="startTournamentBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
                                     Start Tournament
-                            </button>`
-                            : `<button id="startTournamentBtn" class="bg-gray-400 text-white font-bold py-2 px-4 rounded-lg shadow-md cursor-not-allowed opacity-60" disabled>
-                                    Tournament Already Started
-                            </button>`
+                                </button>`
+                            : currentTournament.status === "Ongoing"
+                            ? `<button id="finishTournamentBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                                    End Tournament
+                                </button>`
+                            : ""
                         }
                     </div>
                 </div>
@@ -990,14 +1002,62 @@ function renderTournamentDetail(): void {
                 throw new Error(error.detail || error.message || 'Failed to start tournament.');
             }
             showModal("Tournament started! All rounds have been generated.");
+
             // Refresh tournament data
             const updated = await response.json();
             currentTournament = updated;
+            selectedRoundIdx = 0;
+            currentView = 'viewTournamentGames'
             renderApp();
+
+            // Frontend is rendering before the backend has finished generating/populating all matchups for the last round
+            // Add this to force a refetch after a short delay:
+            setTimeout(async () => {
+                const resp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament!.id}`);
+                if (resp.ok) {
+                    currentTournament = await resp.json();
+                    // If you're still on games view, re-render
+                    if (currentView === 'viewTournamentGames') {
+                        renderTournamentGames();
+                    }
+                }
+            }, 300); // 300ms delay, adjust as needed
         } catch (error: any) {
             showModal(`Failed to start tournament: ${error.message}`);
         }
     });
+
+    // End Tournament button logic
+    document.getElementById('finishTournamentBtn')?.addEventListener('click', async () => {
+        if (!isTournament(currentTournament)) {
+            showModal("Tournament not found.");
+            return;
+        }
+
+        try {
+            currentTournament.status = TournamentStatus.Finished
+            const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(currentTournament)
+            });
+            if (!response.ok) {
+                currentTournament.status = TournamentStatus.Ongoing
+                const error = await response.json();
+                throw new Error(error.detail || error.message || 'Failed to end the tournament.');
+            }
+            showModal("Tournament ended! See the results.");
+            currentView = 'viewTournamentResults'
+            renderApp();
+        } catch (error: any) {
+            showModal(`Failed to end the tournament: ${error.message}`);
+        }
+    });
+
+
 }
 
 
@@ -1104,10 +1164,18 @@ function renderUpdatePlayer(playerId: number): void {
 
 
 async function renderTournamentPlayers(): Promise<void> {
+    if (!isTournament(currentTournament)) {
+        showModal("Tournament not found.");
+        return;
+    }
+
     // Tab button classes
     const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
     const tabActive = "bg-blue-600 text-white";
     const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
+
+    const playersCount = currentTournament.players?.length ?? 0;
+    const maxPlayersReached = playersCount >= currentTournament.nb_of_players;
 
     appContent.innerHTML = `
             <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
@@ -1150,25 +1218,40 @@ async function renderTournamentPlayers(): Promise<void> {
                     <form id="addPlayerForm" class="flex gap-2 mb-4">
                         <input type="text" id="playerNameInput" class="flex-1 px-1 py-1 border rounded" placeholder="Name" required>
                         <input type="number" id="playerRatingInput" class="flex-1 px-1 py-1 border rounded" placeholder="Rating" required>
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded" id="addPlayerButton">Add Player</button>
+                        <button
+                            type="submit"
+                            id="addPlayerButton"
+                            class="${maxPlayersReached || currentTournament.status !== "Not Started"
+                                ? "bg-gray-400 text-gray-600 font-bold py-2 px-4 rounded-lg shadow-md cursor-not-allowed opacity-60"
+                                : "bg-blue-600 text-white px-4 py-1 rounded"}"
+                            ${maxPlayersReached || currentTournament.status !== "Not Started" ? "disabled" : ""}
+                        >
+                            ${maxPlayersReached ? "Max Players" : "Add Player"}
+                        </button>
                     </form>
                     <button id="backToTournamentsBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md mt-4">
                         Back to Tournaments
                     </button>
-                    <button id="generateTournamentPlayers" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
-                        Generate
-                    </button>
-                    <button id="deleteAllTournamentPlayers" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
-                        Delete all
-                    </button>
+                    ${(currentTournament.status === "Not Started")
+                        ?   `<button id="generatePlayersButton"
+                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200
+                                    ${maxPlayersReached ? 'cursor-not-allowed opacity-60 bg-green-400 hover:bg-green-400' : ''}"
+                                    ${maxPlayersReached ? 'disabled' : ''}>
+                                Generate
+                            </button>
+                            <button id="deleteAllPlayersButton" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                                Delete all
+                            </button>`
+                        :   `<button id="generatePlayersButton" class="bg-green-400 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200 cursor-not-allowed opacity-60" disabled>
+                                Generate
+                            </button>
+                            <button id="deleteAllPlayersButton" class="bg-red-400 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200 cursor-not-allowed opacity-60" disabled>
+                                Delete all
+                            </button>`
+                    }
                 </div>
             </div>
         `;
-
-    if (!isTournament(currentTournament)) {
-        showModal("Tournament not found.");
-        return;
-    }
 
     let sortedPlayers = [...(currentTournament.players || [])];
     sortedPlayers.sort((a, b) => {
@@ -1251,20 +1334,8 @@ async function renderTournamentPlayers(): Promise<void> {
             return;
         }
 
-        // Check if max players reached. Disable the add button.
         const addPlayerButton = document.getElementById('addPlayerButton') as HTMLButtonElement | null;
-        if (addPlayerButton && isTournament(currentTournament)) {
-            const playersCount = currentTournament.players?.length ?? 0;
-            if (playersCount >= currentTournament.nb_of_players) {
-                addPlayerButton.disabled = true;
-                addPlayerButton.classList.add('bg-gray-400', 'text-gray-600', 'cursor-not-allowed', 'opacity-60');
-                addPlayerButton.textContent = "Max Players Reached";
-            } else {
-                addPlayerButton.disabled = false;
-                addPlayerButton.classList.remove('bg-gray-400', 'text-gray-600', 'cursor-not-allowed', 'opacity-60');
-                addPlayerButton.textContent = "Add Player";
-            }
-        }
+        if (!addPlayerButton || addPlayerButton.disabled) return;
 
         const playerNameInput = document.getElementById('playerNameInput') as HTMLInputElement;
         const playerRatingInput = document.getElementById('playerRatingInput') as HTMLInputElement;
@@ -1272,7 +1343,7 @@ async function renderTournamentPlayers(): Promise<void> {
         const playerName = playerNameInput.value.trim();
         const playerRating = playerRatingInput.value.trim();
 
-        if (!playerName) return;
+        if (!playerName || !playerRating) return;
 
         try {
             type PlayerCreate = Omit<Player, 'id'>;
@@ -1290,7 +1361,6 @@ async function renderTournamentPlayers(): Promise<void> {
                 throw new Error(error.detail || error.message || 'Failed to fetch tournaments');
             }
             currentTournament = await response.json();
-
             renderApp();
 
         } catch (error: any) {
@@ -1300,54 +1370,60 @@ async function renderTournamentPlayers(): Promise<void> {
 
 
     // Generate players
-    document.getElementById('generateTournamentPlayers')?.addEventListener('click', async (e) => {
-        if (!isTournament(currentTournament)) {
-            showModal("Tournament not found.");
-            return;
-        }
-        try {
-            const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}/generate_players`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+    const generateBtn = document.getElementById('generatePlayersButton') as HTMLButtonElement | null;
+    if (generateBtn && !generateBtn.disabled) {
+        generateBtn.addEventListener('click', async (e) => {
+            if (!isTournament(currentTournament)) {
+                showModal("Tournament not found.");
+                return;
+            }
+            try {
+                const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}/generate_players`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || error.message || 'Failed to generate players.');
                 }
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || error.message || 'Failed to generate players.');
+
+                const tournamentResp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
+                if (tournamentResp.ok) {
+                    currentTournament = await tournamentResp.json();
+                }
+                renderTournamentPlayers();
+            } catch (error: any) {
+                showModal(`Failed to generate players: ${error.message}`);
             }
+        });
+    }
 
-            const tournamentResp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
-            if (tournamentResp.ok) {
-                currentTournament = await tournamentResp.json();
+
+    const deleteAllBtn = document.getElementById('deleteAllPlayersButton') as HTMLButtonElement | null;
+    if (deleteAllBtn && !deleteAllBtn.disabled) {
+        deleteAllBtn.addEventListener('click', async (e) => {
+            if (!isTournament(currentTournament)) {
+                showModal("Tournament not found.");
+                return;
             }
-            renderTournamentPlayers();
-        } catch (error: any) {
-            showModal(`Failed to generate players: ${error.message}`);
-        }
-    });
+            if (!confirm('Are you sure you want to delete all players?')) return;
+            try {
+                await deleteAllPlayers(currentTournament.id, token!);
+                showModal("Players deleted successfully!");
 
-
-    document.getElementById('deleteAllTournamentPlayers')?.addEventListener('click', async (e) => {
-        if (!isTournament(currentTournament)) {
-            showModal("Tournament not found.");
-            return;
-        }
-        if (!confirm('Are you sure you want to delete all players?')) return;
-        try {
-            await deleteAllPlayers(currentTournament.id, token!);
-            showModal("Players deleted successfully!");
-
-            const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
-            if (response.ok) {
-                currentTournament = await response.json();
+                const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
+                if (response.ok) {
+                    currentTournament = await response.json();
+                }
+                renderTournamentPlayers();
+            } catch (error: any) {
+                showModal(`Failed to delete players: ${error.message}`);
             }
-            renderTournamentPlayers();
-        } catch (error: any) {
-            showModal(`Failed to delete players: ${error.message}`);
-        }
-    });
+        });
+    }
 
 
 
@@ -1412,12 +1488,22 @@ async function renderTournamentPlayers(): Promise<void> {
         renderApp();
     });
 }
+
 async function renderTournamentGames(): Promise<void> {
     if (!currentTournament) {
         showModal("Tournament not found.");
         currentView = 'viewTournaments';
         renderApp();
         return;
+    }
+
+    // Reset selectedRoundIdx if out of bounds
+    if (
+        !currentTournament.rounds ||
+        selectedRoundIdx < 0 ||
+        selectedRoundIdx >= currentTournament.rounds.length
+    ) {
+        selectedRoundIdx = 0;
     }
 
     const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
@@ -1427,7 +1513,7 @@ async function renderTournamentGames(): Promise<void> {
     // Build round tabs
     let roundTabsHtml = "";
     if (currentTournament.rounds && currentTournament.rounds.length > 0) {
-        roundTabsHtml = `<div class="flex gap-2 mb-6 overflow-x-auto flex-nowrap pb-4" style="scrollbar-width: thin;">`;
+        roundTabsHtml = `<div id="roundTabs" class="flex gap-2 mb-6 overflow-x-auto flex-nowrap pb-4" style="scrollbar-width: thin;">`;
         currentTournament.rounds.forEach((round, idx) => {
             roundTabsHtml += `
                 <button
@@ -1445,45 +1531,58 @@ async function renderTournamentGames(): Promise<void> {
     let roundTableHtml = "";
     if (currentTournament.rounds && currentTournament.rounds.length > 0) {
         const round = currentTournament.rounds[selectedRoundIdx];
-        roundTableHtml = `
-            <h4 class="text-lg font-bold mt-6 mb-2">Round ${round.round_number} / ${currentTournament.rounds.length}</h4>
-            <table class="min-w-full mb-4 bg-white border border-gray-200 rounded-lg">
-                <thead>
-                    <tr>
-                        <th class="px-4 py-2 border-b text-center">Board</th>
-                        <th class="px-4 py-2 border-b text-center">White</th>
-                        <th class="px-4 py-2 border-b text-center">Result</th>
-                        <th class="px-4 py-2 border-b text-center">Black</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${round.matchups.map((m: Matchup, idx: number) => `
+        if (!round.matchups || !Array.isArray(round.matchups) || round.matchups.length === 0) {
+            roundTableHtml = `<p class="text-gray-600">Matchups for this round are not available yet. Please try again in a moment.</p>`;
+        } else {
+            roundTableHtml = `
+                <h4 class="text-lg font-bold mt-6 mb-2">Round ${round.round_number} / ${currentTournament.rounds.length}</h4>
+                <table class="min-w-full mb-4 bg-white border border-gray-200 rounded-lg">
+                    <thead>
                         <tr>
-                            <td class="px-4 py-2 border-b text-center">${idx + 1}</td>
-                            <td class="px-4 py-2 border-b text-center">${m.white_player.name}</td>
-                            <td class="px-4 py-2 border-b text-center">
-                                <select class="result-select text-center" data-matchup-id="${m.id}" style="text-align-last: center;">
-                                    <option value="" ${!m.result ? "selected" : ""}>Select</option>
-                                    <option value="White-Wins" ${m.result === "White-Wins" ? "selected" : ""}>1 - 0</option>
-                                    <option value="Black-Wins" ${m.result === "Black-Wins" ? "selected" : ""}>0 - 1</option>
-                                    <option value="Draw" ${m.result === "Draw" ? "selected" : ""}> ½ - ½ </option>
-                                </select>
-                            </td>
-                            <td class="px-4 py-2 border-b text-center">${m.black_player.name}</td>
+                            <th class="px-4 py-2 border-b text-center">Board</th>
+                            <th class="px-4 py-2 border-b text-center">White</th>
+                            <th class="px-4 py-2 border-b text-center">Result</th>
+                            <th class="px-4 py-2 border-b text-center">Black</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        ${round.matchups.map((m: Matchup, idx: number) => `
+                            <tr>
+                                <td class="px-4 py-2 border-b text-center">${idx + 1}</td>
+                                <td class="px-4 py-2 border-b text-center">${m.white_player.name}</td>
+                                <td class="px-4 py-2 border-b text-center">
+                                    ${
+                                        currentTournament!.status === TournamentStatus.Ongoing
+                                        ? `<select class="result-select text-center" data-matchup-id="${m.id}" style="text-align-last: center;">
+                                                <option value="" ${!m.result ? "selected" : ""}>Select</option>
+                                                <option value="White-Wins" ${m.result === "White-Wins" ? "selected" : ""}>1 - 0</option>
+                                                <option value="Black-Wins" ${m.result === "Black-Wins" ? "selected" : ""}>0 - 1</option>
+                                                <option value="Draw" ${m.result === "Draw" ? "selected" : ""}>½ - ½</option>
+                                            </select>`
+                                        : (
+                                            m.result === "White-Wins" ? "1 - 0"
+                                            : m.result === "Black-Wins" ? "0 - 1"
+                                            : m.result === "Draw" ? "½ - ½"
+                                            : "-"
+                                        )
+                                    }
+                                </td>
+                                <td class="px-4 py-2 border-b text-center">${m.black_player.name}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    }
+    if (currentTournament.status === TournamentStatus.Ongoing) {
+        roundTableHtml += `
+            <div class="flex justify-end mt-4">
+                <button id="saveResultsBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                    Save Results
+                </button>
+            </div>
         `;
-    roundTableHtml += `
-        <div class="flex justify-end mt-4">
-            <button id="saveResultsBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                Save Results
-            </button>
-        </div>
-    `;
-    } else {
-        roundTableHtml = `<p class="text-gray-600">No rounds have been generated yet.</p>`;
     }
 
     appContent.innerHTML = `
@@ -1539,8 +1638,20 @@ async function renderTournamentGames(): Promise<void> {
     if (currentTournament.rounds && currentTournament.rounds.length > 0) {
         currentTournament.rounds.forEach((_, idx) => {
             document.getElementById(`roundTab${idx}`)?.addEventListener('click', () => {
+                // Save scroll position
+                const roundTabsDiv = document.getElementById('roundTabs');
+                const scrollLeft = roundTabsDiv ? roundTabsDiv.scrollLeft : 0;
+
                 selectedRoundIdx = idx;
                 renderTournamentGames();
+
+                // Restore scroll position after render
+                setTimeout(() => {
+                    const roundTabsDiv = document.getElementById('roundTabs');
+                    if (roundTabsDiv) {
+                        roundTabsDiv.scrollLeft = scrollLeft;
+                    }
+                }, 0);
             });
         });
     }
@@ -1584,6 +1695,9 @@ async function renderTournamentGames(): Promise<void> {
             if (tournamentResp.ok) {
                 currentTournament = await tournamentResp.json();
                 renderTournamentGames();
+                if (currentView === 'viewTournamentResults') {
+                    renderTournamentResults();
+                }
             }
         } catch (error: any) {
             showModal(`Failed to save results: ${error.message}`);
@@ -1598,43 +1712,71 @@ async function renderTournamentResults(): Promise<void> {
         renderApp();
         return;
     }
+    const tournament = currentTournament; // Now TypeScript knows it's not null
 
     // Tab button classes
     const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
     const tabActive = "bg-blue-600 text-white";
     const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
 
-    // Calculate number of rounds
-    let numRounds = 0;
-    if (currentTournament.format === "Round-Robin") {
-        numRounds = currentTournament.nb_of_players - 1;
-    } else if (currentTournament.format === "Double-Round-Robin") {
-        numRounds = (currentTournament.nb_of_players * 2) - 1;
-    }
-
     // Build table headers
-    let roundHeaders = "";
-    for (let i = 1; i <= numRounds; i++) {
+    let roundHeaders = '<th class="px-4 py-2 border-b text-center">Pts.</th>';
+    for (let i = 1; i <= tournament.rounds.length; i++) {
         roundHeaders += `<th class="px-4 py-2 border-b text-center">R${i}</th>`;
     }
 
-    // Build table rows
-    let playerRows = "";
-    (currentTournament.players || []).forEach((player, idx) => {
+    const playerStats = (tournament.players || []).map((player, idx) => {
+        let points = 0;
         let roundCells = "";
-        for (let r = 1; r <= numRounds; r++) {
-            // Placeholder for result, you can replace with actual data if available
-            roundCells += `<td class="px-4 py-2 border-b text-center">-</td>`;
+        for (let r = 0; r < tournament.rounds.length; r++) {
+            const round = tournament.rounds[r];
+            const matchup = round.matchups.find(
+                (m: Matchup) => m.white_player.id === player.id || m.black_player.id === player.id
+            );
+            let cell = "-";
+            if (matchup && matchup.result) {
+                if (matchup.result === "Draw") {
+                    cell = "½";
+                    points += 0.5;
+                } else if (matchup.result === "White-Wins") {
+                    if (matchup.white_player.id === player.id) {
+                        cell = "1";
+                        points += 1;
+                    } else {
+                        cell = "0";
+                    }
+                } else if (matchup.result === "Black-Wins") {
+                    if (matchup.black_player.id === player.id) {
+                        cell = "1";
+                        points += 1;
+                    } else {
+                        cell = "0";
+                    }
+                }
+            }
+            roundCells += `<td class="px-4 py-2 border-b text-center">${cell}</td>`;
         }
-        playerRows += `
-            <tr>
-                <td class="px-4 py-2 border-b text-center">${idx + 1}</td>
-                <td class="px-4 py-2 border-b text-left">${player.name}</td>
-                <td class="px-4 py-2 border-b text-center">${player.rating}</td>
-                ${roundCells}
-            </tr>
-        `;
+        return {
+            idx,
+            player,
+            points,
+            roundCells
+        };
     });
+
+    // 2. Sort by points descending
+    playerStats.sort((a, b) => b.points - a.points);
+
+    // 3. Build the table rows
+    let playerRows = playerStats.map((stat, rank) => `
+        <tr>
+            <td class="px-4 py-2 border-b text-center">${rank + 1}</td>
+            <td class="px-4 py-2 border-b text-left">${stat.player.name}</td>
+            <td class="px-4 py-2 border-b text-center">${stat.player.rating}</td>
+            <td class="px-4 py-2 border-b text-center font-bold">${stat.points % 1 === 0 ? stat.points : stat.points.toFixed(1)}</td>
+            ${stat.roundCells}
+        </tr>
+    `).join('');
 
     appContent.innerHTML = `
         <div class="p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
@@ -1653,7 +1795,7 @@ async function renderTournamentResults(): Promise<void> {
                 </button>
             </div>
             <div id="tournamentDetailContent">
-                <h3 class="text-xl font-semibold mb-2">Results</h3>
+                <h3 class="text-xl font-semibold mb-2">Results - ${tournament.format} (${tournament.time_control})</h3>
                 <div class="overflow-x-auto mb-4">
                     <table class="min-w-full bg-white border border-gray-200 rounded-lg">
                         <thead>

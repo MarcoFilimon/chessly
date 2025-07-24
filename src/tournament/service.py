@@ -1,5 +1,6 @@
 from sqlmodel import desc, select, asc
 from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.db.models import Tournament, User, Round, Matchup, Player
 from .schemas import TournamentCreate, TournamentUpdate, RoundResult
@@ -10,7 +11,8 @@ from src.utils.errors import (
     TournamentNotFound,
     TournamentAlreadyExists,
     InsufficientPermission,
-    TournamentStarted
+    TournamentStarted,
+    TournamentNotFinished
 )
 
 from src.player.schemas import PlayerCreate
@@ -18,14 +20,15 @@ from src.player.service import PlayerService
 player_service = PlayerService()
 
 def berger_table_pairings(player_ids, double_round_robin=False):
-    n = len(player_ids)
+    n_players = len(player_ids)
     rounds = []
     # Add dummy for bye if odd
-    if n % 2 != 0:
+    if n_players % 2 != 0:
         player_ids = player_ids + [None]
-        n += 1
 
-    num_rounds = n - 1
+    n = len(player_ids)
+    num_rounds = n - 1  # Always n-1 rounds after dummy is added
+
     rotation = player_ids[:-1]
     fixed = player_ids[-1]
 
@@ -62,9 +65,20 @@ def berger_table_pairings(player_ids, double_round_robin=False):
 
 class TournamentService:
     async def get_tournament(self, id: int, session: AsyncSession):
-        tournament = await session.get(Tournament, id)
-        if tournament is None:
-            raise TournamentNotFound()
+        '''
+        selectinload tells SQLAlchemy to fetch related objects (like rounds and their matchups) in advance, while the session is still open.
+        This prevents the need for lazy loading after the session is closed, which causes the MissingGreenlet error.
+        '''
+        statement = (
+            select(Tournament)
+            .where(Tournament.id == id)
+            .options(
+                selectinload(Tournament.rounds).selectinload(Round.matchups),
+                selectinload(Tournament.players)
+            )
+        )
+        result = await session.exec(statement)
+        tournament = result.first()
         return tournament
 
     async def delete_tournament(self, id: int, session: AsyncSession):
@@ -87,13 +101,20 @@ class TournamentService:
 
     async def update_tournament(self, id: int, payload: TournamentUpdate, current_user: User, session: AsyncSession):
         tournament = await self.get_tournament(id, session)
-        if tournament.status != Status.NOT_STARTED:
-            raise TournamentStarted()
+
+        # For finishing the tournament, check if all matchups have a result
+        if tournament.status == Status.ONGOING and payload.status == Status.FINISHED:
+        # Check all matchups in all rounds
+            for rnd in tournament.rounds:
+                for matchup in rnd.matchups:
+                    if matchup.result == Result.NO_RESULT or not matchup.result:
+                        raise TournamentNotFinished()
+
         if tournament.manager_id == current_user.id or current_user.role == "admin":
             tournament.sqlmodel_update(payload.model_dump(exclude_unset=True))
             session.add(tournament)
             await session.commit()
-            await session.refresh(tournament)
+            tournament = await self.get_tournament(id, session)
             return tournament
         else:
             raise InsufficientPermission()
@@ -179,17 +200,22 @@ class TournamentService:
                 session.add(matchup)
 
         await session.commit()
-        await session.refresh(tournament)
+        # After committing, always re-fetch the tournament with eager loading before returning it.
+        tournament = await self.get_tournament(tournament_id, session)
         return tournament
 
     async def generate_players(self, tournament_id: int, session: AsyncSession):
         tournament = await self.get_tournament(tournament_id, session)
         nb_of_players = tournament.nb_of_players
 
-        i = 1
-        while i <= nb_of_players:
-            payload = PlayerCreate(name=f"Player#{i}", rating=random.randint(400,4000))
+        counter = 1
+        if len(tournament.players) <= nb_of_players:
+            counter = len(tournament.players) + 1
+        while counter <= nb_of_players:
+            payload = PlayerCreate(name=f"Player#{counter + 1}", rating=random.randint(400,4000))
             _ = await player_service.create_player(tournament_id, payload, session)
-            i += 1
+            counter += 1
 
+        await session.commit()
+        tournament = await self.get_tournament(tournament_id, session)
         return tournament

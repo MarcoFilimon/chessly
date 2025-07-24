@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field, Column, Relationship
+from sqlmodel import SQLModel, Field, Column, Relationship, UniqueConstraint
 import sqlalchemy.dialects.postgresql as pg
 import sqlalchemy as sa
 from datetime import datetime, date
@@ -90,12 +90,12 @@ class Tournament(SQLModel, table=True):
 class Player(SQLModel, table=True):
     __tablename__ = "players"
 
+    __table_args__ = (UniqueConstraint('name', 'tournament_id', name='_name_tournament_id_uc_'),
+                     )
+
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(unique=True, index=True)
+    name: str = Field(index=True)
     rating: int = Field(ge=1, le=4000)
-    # age: int = Field(ge=1, le=125)
-    # country: str
-    # title: str
 
     # -------------- Tournament relationship
 

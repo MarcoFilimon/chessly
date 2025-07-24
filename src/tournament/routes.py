@@ -122,7 +122,7 @@ async def update_round_result(
 
 
 @router.post('/{id}/generate_players', response_model=Tournament, status_code=status.HTTP_200_OK)
-async def start_tournament(
+async def generate_players(
     id: int,
     _ : bool = Depends(full_access),
     session: AsyncSession = Depends(db.get_session)
