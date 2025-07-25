@@ -73,7 +73,9 @@ class UserService:
                     "username": user.username,
                     "email": user.email,
                     "id": user.id,
-                    "is_verified": user.is_verified
+                    "is_verified": user.is_verified,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name
                 },
                 "token": token,
                 "refresh_token": refresh_token

@@ -1,4 +1,21 @@
 
+export interface User {
+    id?: number,
+    username: string;
+    password?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    is_verified?: boolean;
+}
+
+export type UserUpdate = {
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    password?: string;
+};
+
 export interface Player {
     id: number;
     name: string;

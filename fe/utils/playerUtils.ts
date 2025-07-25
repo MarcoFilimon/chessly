@@ -7,7 +7,7 @@ import {
     setCurrentTournament,
     getCurrentTournament,
     setCurrentView
-} from '../state'
+} from '../state.js'
 
 import {
     addPlayerToTournament,
@@ -16,14 +16,14 @@ import {
     fetchTournament,
     deleteAllPlayers,
     deletePlayer
-} from '../api'
+} from '../api.js'
 
-import { Modal } from './general'
-import { isTournament } from './tournamentUtils'
-import {renderApp} from '../views/home'
-import {Player, Matchup, Tournament} from '../types'
-import { renderTournamentPlayers } from '../views/tournamentPlayers'
-import {appContent} from '../dom'
+import { Modal } from './general.js'
+import { isTournament } from './tournamentUtils.js'
+import {renderApp} from '../views/home.js'
+import {Player, Matchup, Tournament} from '../types.js'
+import { renderTournamentPlayers } from '../views/tournamentPlayers.js'
+import {appContent} from '../dom.js'
 
 
 export function getPlayerStats(tournament: Tournament) {

@@ -36,7 +36,6 @@ class UserCreate(UserBase):
 
 class UserUpdate(UserValidatorMixin):
     username: str | None
-    email: EmailStr | None
     password: str | None
     first_name: str | None = None
     last_name: str | None = None

@@ -1,13 +1,15 @@
-import { Tournament } from './types';
+import { Tournament } from './types.js';
 
 // --- State variables (saved in local storage) ---
 let userId: string | null = null;
 let userUsername: string | null = null;
+let userFirstName: string | null = null;
+let userLastName: string | null = null;
 let userEmail: string | null = null;
 let refresh_token: string | null = null;
 let token: string | null = null;
 
-type View = 'home' | 'viewTournamentDetail' | 'viewTournamentPlayers' | 'viewTournamentGames' | 'viewTournamentResults' | 'createTournament' | 'viewTournaments' | 'signup' | 'login';
+type View = 'home' | 'viewTournamentDetail' | 'viewTournamentPlayers' | 'viewTournamentGames' | 'viewTournamentResults' | 'createTournament' | 'viewTournaments' | 'signup' | 'login' | 'viewUser';
 let currentView: View = 'home';
 
 let selectedRoundIdx: number = 0;
@@ -32,9 +34,24 @@ export function getUserUsername(): string | null {
     return userUsername;
 }
 
+export function setFirstName(firstName: string | null) {
+    userFirstName = firstName;
+}
+export function getFirstName(): string | null {
+    return userFirstName;
+}
+
+export function setLastName(lastName: string | null) {
+    userLastName = lastName;
+}
+export function getLastName(): string | null {
+    return userLastName;
+}
+
 export function setUserEmail(email: string | null) {
     userEmail = email;
 }
+
 export function getUserEmail(): string | null {
     return userEmail;
 }
