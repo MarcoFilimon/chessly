@@ -4,30 +4,30 @@ import {
     getCurrentTournament,
     setCurrentTournament,
     getToken,
-    getTournaments
-} from '../state'
+    getTournaments,
+    setSelectedRoundIdx
+} from '../state.js'
 
 import {
     apiFetch,
     fastApiBaseUrl,
     deleteTournament,
     createTournament
-} from '../api'
+} from '../api.js'
 
 import {
     tabActive,
     tabInactive,
     tabBase
-} from './navigationUtils'
+} from './navigationUtils.js'
 
 
-import {TournamentStatus, Tournament} from '../types'
-import {Modal, formatDate} from './general'
-import {renderApp} from '../views/home'
-import {setSelectedRoundIdx} from '../state'
-import {renderTournamentGames} from '../views/tournamentGames'
-import {renderViewTournaments} from '../views/tournament'
-import {appContent} from '../dom'
+import {TournamentStatus, Tournament} from '../types.js'
+import {Modal, formatDate} from './general.js'
+import {renderApp} from '../views/home.js'
+import {renderTournamentGames} from '../views/tournamentGames.js'
+import {renderViewTournaments} from '../views/tournament.js'
+import {appContent} from '../dom.js'
 
 export function isTournament(obj: unknown): obj is Tournament {
     return typeof obj === "object" && obj !== null &&

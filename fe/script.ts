@@ -1,7 +1,7 @@
-import { homeBtn, logoHome, modalCloseBtn } from "./dom";
-import { Modal } from "./utils/general";
-import { setCurrentView } from "./state";
-import { renderApp } from "./views/home";
+import { homeBtn, logoHome, modalCloseBtn } from "./dom.js";
+import { Modal } from "./utils/general.js";
+import { setCurrentView } from "./state.js";
+import { renderApp } from "./views/home.js";
 
 function attachGlobalEvents() {
     homeBtn.addEventListener('click', () => {
@@ -17,5 +17,11 @@ function attachGlobalEvents() {
 
 window.onload = function() {
     renderApp();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const verificationToken = urlParams.get('verify');
+    if (verificationToken) {
+        Modal.show("Your account has been verified! You can now log in.");
+    }
     attachGlobalEvents();
 };

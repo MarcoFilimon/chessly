@@ -2,25 +2,25 @@ import {
     fastApiBaseUrl,
     fetchTournament,
     apiFetch
-} from '../api'
+} from '../api.js'
 
 import {
     getCurrentView,
     setCurrentTournament,
-} from '../state'
+} from '../state.js'
 
-import {Matchup, TournamentStatus, Tournament, MatchupResult} from '../types'
-import {Modal} from './general'
+import {Matchup, TournamentStatus, Tournament, MatchupResult} from '../types.js'
+import {Modal} from './general.js'
 
 import {
     tabBase,
     tabInactive,
     tabActive
-} from './navigationUtils'
+} from './navigationUtils.js'
 
-import {getSelectedRoundIdx, setSelectedRoundIdx} from '../state'
-import {renderTournamentResults} from '../views/tournamentResults'
-import { renderTournamentGames } from '../views/tournamentGames'
+import {getSelectedRoundIdx, setSelectedRoundIdx} from '../state.js'
+import {renderTournamentResults} from '../views/tournamentResults.js'
+import { renderTournamentGames } from '../views/tournamentGames.js'
 
 export function attachSaveResultsButtonHandler(currentTournament: Tournament) {
     document.getElementById('saveResultsBtn')?.addEventListener('click', async () => {

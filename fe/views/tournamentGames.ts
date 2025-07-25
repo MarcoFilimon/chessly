@@ -1,25 +1,25 @@
 import {
     setCurrentView,
     getCurrentTournament,
-} from '../state'
+} from '../state.js'
 
-import {Modal} from '../utils/general'
-import {renderApp} from './home'
-import {appContent} from '../dom'
+import {Modal} from '../utils/general.js'
+import {renderApp} from './home.js'
+import {appContent} from '../dom.js'
 
 import {
     attachTournamentTabNavHandlers,
     renderTournamentTabs,
-} from '../utils/navigationUtils'
+} from '../utils/navigationUtils.js'
 
-import {getSelectedRoundIdx, setSelectedRoundIdx} from '../state'
+import {getSelectedRoundIdx, setSelectedRoundIdx} from '../state.js'
 
 import {
     attachSaveResultsButtonHandler,
     attachRoundTabHandlers,
     renderSelectedRound,
     renderRoundTabs
-} from '../utils/gamesUtils'
+} from '../utils/gamesUtils.js'
 
 
 export async function renderTournamentGames(): Promise<void> {

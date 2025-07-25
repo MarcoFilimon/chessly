@@ -1,6 +1,6 @@
-import { setToken, getToken, getRefreshToken} from './state';
-import { handleLogout } from './views/home';
-import { Tournament, Player } from './types';
+import { setToken, getToken, getRefreshToken, getUserId} from './state.js';
+import { handleLogout } from './views/home.js';
+import { Tournament, Player, UserUpdate, User} from './types.js';
 
 // --- FastAPI Configuration ---
 export const fastApiBaseUrl: string = 'http://localhost:8000/api/v1';
@@ -157,5 +157,50 @@ export async function deleteAllPlayers(currentTournamentId: number): Promise<voi
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to delete players.');
+    }
+}
+
+export async function fetchProfile() : Promise<User> {
+    const response = await apiFetch(`${fastApiBaseUrl}/auth/me`);
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || error.message || 'Failed to user information.');
+    }
+    return await response.json();
+}
+
+export async function updateProfile(newUserData: UserUpdate) : Promise<User> {
+    const response = await apiFetch(`${fastApiBaseUrl}/auth/${getUserId()}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify(newUserData)
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || error.message || "Failed to update profile.");
+    }
+    return await response.json();
+}
+
+export async function sendVerificationEmail() : Promise<void> {
+    const response = await apiFetch(`${fastApiBaseUrl}/auth/resend_verification`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to send verifcation email.');
     }
 }

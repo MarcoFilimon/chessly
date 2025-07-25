@@ -11,31 +11,36 @@ import {
     getToken,
     setTournaments,
     setRefreshToken,
-    getRefreshToken
-} from '../state'
+    getRefreshToken,
+    getFirstName,
+    getLastName,
+    setFirstName,
+    setLastName
+} from '../state.js'
 
 import {
     fastApiBaseUrl,
-} from '../api'
+} from '../api.js'
 
-import {Modal} from '../utils/general'
-import {appContent, authButtonsContainer} from '../dom'
+import {Modal} from '../utils/general.js'
+import {appContent, authButtonsContainer} from '../dom.js'
 
 import {
     renderCreateTournament,
     renderViewTournaments,
-} from './tournament'
+} from './tournament.js'
 
 import {
     renderTournamentDetail
-} from './tournamentDetail'
+} from './tournamentDetail.js'
 
-import {renderTournamentGames} from './tournamentGames'
+import {renderTournamentGames} from './tournamentGames.js'
 
-import {renderTournamentPlayers} from './tournamentPlayers'
+import {renderTournamentPlayers} from './tournamentPlayers.js'
 
-import {renderTournamentResults} from './tournamentResults'
+import {renderTournamentResults} from './tournamentResults.js'
 
+import { renderViewUser } from './profile.js'
 
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
@@ -59,6 +64,8 @@ async function handleLogin(e: Event): Promise<void> {
             setToken(data.token);
             setUserUsername(data.user.username);
             setUserEmail(data.user.email);
+            setFirstName(data.user.first_name);
+            setLastName(data.user.last_name)
             localStorage.setItem('chessTournamentUserId', getUserId() as string);
             localStorage.setItem('chessTournamentUsername', getUserUsername() as string);
             localStorage.setItem('chessTournamentEmail', getUserEmail() as string);
@@ -310,7 +317,7 @@ function renderHeaderButtons(): void {
                 Tournaments
             </button>
             <button id="viewUser" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
-                ${getUserUsername() || 'User'}
+                ${getUserUsername()}
             </button>
             <button id="logoutBtnHeader" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-lg shadow-sm transition duration-300">
                 Logout
@@ -318,6 +325,7 @@ function renderHeaderButtons(): void {
         `;
         document.getElementById('createBtnHeader')?.addEventListener('click', () => { setCurrentView('createTournament') ; renderApp(); });
         document.getElementById('viewBtnHeader')?.addEventListener('click', () => { setCurrentView('viewTournaments') ; renderApp(); });
+        document.getElementById('viewUser')?.addEventListener('click', () => { setCurrentView('viewUser') ; renderApp(); });
         document.getElementById('logoutBtnHeader')?.addEventListener('click', handleLogout);
     } else {
         authButtonsContainer.innerHTML = `
@@ -359,6 +367,9 @@ export function renderApp(): void {
             break;
         case 'viewTournamentResults':
             renderTournamentResults();
+            break;
+        case 'viewUser':
+            renderViewUser();
             break;
         case 'login':
             renderLogin();

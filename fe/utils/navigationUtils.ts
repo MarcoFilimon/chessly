@@ -1,9 +1,9 @@
 import {
     setCurrentView,
     getCurrentView
-} from '../state'
+} from '../state.js'
 
-import {renderApp} from '../views/home'
+import {renderApp} from '../views/home.js'
 
 
 // Tab button classes

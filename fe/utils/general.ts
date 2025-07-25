@@ -1,4 +1,4 @@
-import { modalMessage, modalOverlay } from "../dom"
+import { modalMessage, modalOverlay } from "../dom.js"
 
 export const Modal = {
     show(message: string): void {

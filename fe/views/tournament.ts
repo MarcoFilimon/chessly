@@ -1,19 +1,19 @@
 import {
     getUserId,
     setTournaments,
-} from '../state'
+} from '../state.js'
 
 import {
     fetchTournaments,
-} from '../api'
+} from '../api.js'
 
-import {renderTournamentsTabContent, attachTournamentCreateListeners} from '../utils/tournamentUtils'
-import {appContent} from '../dom'
+import {renderTournamentsTabContent, attachTournamentCreateListeners} from '../utils/tournamentUtils.js'
+import {appContent} from '../dom.js'
 
 import {
     attachTournamentOperationListeners,
     renderTournamentForm,
-} from '../utils/tournamentUtils'
+} from '../utils/tournamentUtils.js'
 
 
 export function renderCreateTournament(): void {
