@@ -1,245 +1,30 @@
 import {
-    getCurrentView,
-    setPlayerSortColumn,
-    setPlayerSortDirection,
     getPlayerSortColumn,
     getPlayerSortDirection,
-    getToken,
-    setCurrentTournament,
     getCurrentTournament
 } from '../state'
 
-import {
-    addPlayerToTournament,
-    apiFetch,
-    fastApiBaseUrl,
-    fetchTournament,
-    deleteAllPlayers,
-    deletePlayer
-} from '../api'
-
-import {isTournament, showModal, getSortedPlayers} from '../utils'
-import {renderApp} from './home'
+import { Modal } from '../utils/general'
+import { isTournament } from '../utils/tournamentUtils'
 import {appContent} from '../dom'
-import {Player, TournamentStatus, Tournament} from '../types'
-import {renderUpdatePlayer} from './player'
-import {attachTabNavigationHandlers} from './navigation'
-
-
-function attachSortHandlers() {
-    document.getElementById('sortByName')?.addEventListener('click', () => {
-        if (getPlayerSortColumn() === 'name') {
-            setPlayerSortDirection(getPlayerSortDirection() === 'asc' ? 'desc' : 'asc');
-        } else {
-            setPlayerSortColumn('name');
-            setPlayerSortDirection('asc');
-        }
-        renderTournamentPlayers();
-    });
-
-    document.getElementById('sortByRating')?.addEventListener('click', () => {
-        if (getPlayerSortColumn() === 'rating') {
-            setPlayerSortDirection(getPlayerSortDirection() === 'asc' ? 'desc' : 'asc');
-        } else {
-            setPlayerSortColumn('rating');
-            setPlayerSortDirection('asc');
-        }
-        renderTournamentPlayers();
-    });
-}
-
-function attachPlayerTableListeners() {
-    // Add player handler
-    document.getElementById('addPlayerForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const currentTournament = getCurrentTournament();
-
-        if (!isTournament(currentTournament)) {
-            showModal("Tournament not found.");
-            return;
-        }
-
-        const addPlayerButton = document.getElementById('addPlayerButton') as HTMLButtonElement | null;
-        if (!addPlayerButton || addPlayerButton.disabled) return;
-
-        const playerNameInput = document.getElementById('playerNameInput') as HTMLInputElement;
-        const playerRatingInput = document.getElementById('playerRatingInput') as HTMLInputElement;
-
-        const playerName = playerNameInput.value.trim();
-        const playerRating = playerRatingInput.value.trim();
-
-        if (!playerName || !playerRating) return;
-
-        try {
-            type PlayerCreate = Omit<Player, 'id'>;
-            const playerData: PlayerCreate = {
-                name: playerName,
-                rating: Number(playerRating),
-                tournament_id: currentTournament.id
-            };
-            await addPlayerToTournament(playerData);
-
-            // Fetch updated tournament data
-            const tournament : Tournament = await fetchTournament(currentTournament.id);
-            setCurrentTournament(tournament);
-            renderApp();
-
-        } catch (error: any) {
-            showModal(`Failed to create player: ${error.message}`)
-        }
-    });
-
-
-    // Generate players
-    const generateBtn = document.getElementById('generatePlayersButton') as HTMLButtonElement | null;
-    if (generateBtn && !generateBtn.disabled) {
-        generateBtn.addEventListener('click', async (e) => {
-            const currentTournament = getCurrentTournament();
-            if (!isTournament(currentTournament)) {
-                showModal("Tournament not found.");
-                return;
-            }
-            try {
-                const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}/generate_players`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getToken()}`
-                    }
-                });
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || error.message || 'Failed to generate players.');
-                }
-
-                const tournamentResp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
-                if (tournamentResp.ok) {
-                    setCurrentTournament(await tournamentResp.json());
-                }
-                renderTournamentPlayers();
-            } catch (error: any) {
-                showModal(`Failed to generate players: ${error.message}`);
-            }
-        });
-    }
-
-
-    const deleteAllBtn = document.getElementById('deleteAllPlayersButton') as HTMLButtonElement | null;
-    if (deleteAllBtn && !deleteAllBtn.disabled) {
-        deleteAllBtn.addEventListener('click', async (e) => {
-            const currentTournament = getCurrentTournament();
-            if (!isTournament(currentTournament)) {
-                showModal("Tournament not found.");
-                return;
-            }
-            if (!confirm('Are you sure you want to delete all players?')) return;
-            try {
-                await deleteAllPlayers(currentTournament.id);
-                showModal("Players deleted successfully!");
-
-                const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
-                if (response.ok) {
-                    setCurrentTournament(await response.json());
-                }
-                renderTournamentPlayers();
-            } catch (error: any) {
-                showModal(`Failed to delete players: ${error.message}`);
-            }
-        });
-    }
-
-    document.querySelectorAll('.delete-player-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const currentTournament = getCurrentTournament();
-            const playerId = (btn as HTMLElement).getAttribute('data-player-id');
-            if (!playerId) return;
-            if (!confirm('Are you sure you want to delete this player?')) return;
-            try {
-                await deletePlayer(playerId);
-                showModal('Player deleted successfully!');
-
-                const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament!.id}`);
-                if (response.ok) {
-                    setCurrentTournament(await response.json());
-                }
-                await renderTournamentPlayers();
-            } catch (error: any) {
-                showModal(`Failed to delete player: ${error.message}`);
-            }
-
-        });
-    });
-
-    document.querySelectorAll('.update-player-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const playerId = Number((btn as HTMLElement).getAttribute('data-player-id'));
-            renderUpdatePlayer(playerId);
-        });
-    });
-
-}
-
-function renderPlayerRow(player: Player, idx: number, canEdit: boolean): string {
-    return `
-        <tr>
-            <td class="px-4 py-2 border-b">${idx + 1}</td>
-            <td class="px-4 py-2 border-b">${player.name}</td>
-            <td class="px-4 py-2 border-b flex items-center justify-between">
-                <span>${player.rating}</span>
-                ${canEdit ?
-                    `<span class="flex gap-2 ml-4">
-                        <button type="button" class="update-player-btn" data-player-id="${player.id}" title="Update">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.293-6.293a1 1 0 011.414 0l3.586 3.586a1 1 0 010 1.414L13 17H9v-4z" />
-                            </svg>
-                        </button>
-                        <button type="button" class="delete-player-btn" data-player-id="${player.id}" title="Delete">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 hover:text-red-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </span>`
-                    :
-                    ""}
-            </td>
-        </tr>
-    `;
-}
-
+import {TournamentStatus} from '../types'
+import {attachTournamentTabNavHandlers} from '../utils/navigationUtils'
+import { attachPlayerTableListeners, attachSortHandlers, renderPlayerRow, getSortedPlayers} from '../utils/playerUtils'
+import { renderTournamentTabs } from '../utils/navigationUtils'
 
 export async function renderTournamentPlayers(): Promise<void> {
     const currentTournament = getCurrentTournament();
     if (!isTournament(currentTournament)) {
-        showModal("Tournament not found.");
+        Modal.show("Tournament not found.");
         return;
     }
-
-    // Tab button classes
-    const tabBase = "flex-1 text-center font-bold py-2 px-4 rounded-lg shadow-md transition duration-200";
-    const tabActive = "bg-blue-600 text-white";
-    const tabInactive = "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer";
 
     const playersCount = currentTournament.players?.length ?? 0;
     const maxPlayersReached = playersCount >= currentTournament.nb_of_players;
 
     appContent.innerHTML = `
             <div class="p-8 max-w-2xl mx-auto bg-white rounded-lg shadow-lg">
-                <div class="flex gap-2 mb-6">
-                    <button id="descTab" class="${tabBase} ${getCurrentView() === 'viewTournamentDetail' ? tabActive : tabInactive}">
-                        Description
-                    </button>
-                    <button id="playersTab" class="${tabBase} ${getCurrentView() === 'viewTournamentPlayers' ? tabActive : tabInactive}">
-                        Players
-                    </button>
-                    <button id="gamesTab" class="${tabBase} ${getCurrentView() === 'viewTournamentGames' ? tabActive : tabInactive}">
-                        Games
-                    </button>
-                    <button id="resultsTab" class="${tabBase} ${getCurrentView() === 'viewTournamentResults' ? tabActive : tabInactive}">
-                        Results
-                    </button>
-                </div>
+                ${renderTournamentTabs()}
                 <div id="tournamentDetailContent">
                     <h3 class="text-xl font-semibold mb-4">Players</h3>
                     <div class="overflow-x-auto mb-4">
@@ -300,6 +85,7 @@ export async function renderTournamentPlayers(): Promise<void> {
             </div>
         `;
 
+    // Sort players
     const sortedPlayers = getSortedPlayers(
         currentTournament.players || [],
         getPlayerSortColumn(),
@@ -314,15 +100,7 @@ export async function renderTournamentPlayers(): Promise<void> {
             .join('');
     }
 
-    // Render players (if any)
-    const playerList = document.getElementById('playerList');
-    if (playerList) {
-        playerList.innerHTML = sortedPlayers
-            .map((player: any) => `<li>${player.name} (Rating: ${player.rating})</li>`)
-            .join('');
-    }
-
     attachSortHandlers();
     attachPlayerTableListeners();
-    attachTabNavigationHandlers();
+    attachTournamentTabNavHandlers();
 }

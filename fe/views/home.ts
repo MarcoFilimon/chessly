@@ -18,7 +18,7 @@ import {
     fastApiBaseUrl,
 } from '../api'
 
-import {showModal} from '../utils'
+import {Modal} from '../utils/general'
 import {appContent, authButtonsContainer} from '../dom'
 
 import {
@@ -36,7 +36,7 @@ import {renderTournamentPlayers} from './tournamentPlayers'
 
 import {renderTournamentResults} from './tournamentResults'
 
-// --- Authentication Handlers (calling FastAPI) ---
+
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
     const usernameInput = document.getElementById('loginUsername') as HTMLInputElement;
@@ -77,7 +77,7 @@ async function handleLogin(e: Event): Promise<void> {
         }
     } catch (error: any) {
         console.error("Error logging in:", error);
-        showModal(`Login failed: ${error.message}`);
+        Modal.show(`Login failed: ${error.message}`);
     }
 }
 
@@ -111,7 +111,7 @@ async function handleSignup(e: Event): Promise<void> {
         const data = await response.json();
 
         if (response.ok) {
-            showModal(data.message);
+            Modal.show(data.message);
             setCurrentView('home');
             renderApp();
         } else {
@@ -125,7 +125,7 @@ async function handleSignup(e: Event): Promise<void> {
         }
     } catch (error: any) {
         console.error("Error signing up:", error);
-        showModal(`Signup failed: ${error.message}`);
+        Modal.show(`Signup failed: ${error.message}`);
     }
 }
 
@@ -146,11 +146,9 @@ export async function handleLogout(): Promise<void> {
         renderApp(); // Re-render after logout
     } catch (error: any) {
         console.error("Error logging out:", error);
-        showModal(`Logout failed: ${error.message}`);
+        Modal.show(`Logout failed: ${error.message}`);
     }
 }
-
-
 
 function renderHome(): void {
     appContent.innerHTML = `
@@ -179,9 +177,6 @@ function renderHome(): void {
     }
     document.getElementById('viewTournamentsBtnHome')?.addEventListener('click', () => { setCurrentView('viewTournaments') ; renderApp(); });
 }
-
-
-
 
 function renderLogin(): void {
     appContent.innerHTML = `
@@ -305,9 +300,7 @@ function renderSignup(): void {
     document.getElementById('goToLoginBtn')?.addEventListener('click', () => { setCurrentView( 'login') ; renderApp(); });
 }
 
-// --- Main Render Function ---
-export function renderApp(): void {
-    // Render header authentication buttons
+function renderHeaderButtons(): void {
     if (getUserId()) {
         authButtonsContainer.innerHTML = `
             <button id="createBtnHeader" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
@@ -338,6 +331,11 @@ export function renderApp(): void {
         document.getElementById('loginBtnHeader')?.addEventListener('click', () => { setCurrentView('login') ; renderApp(); });
         document.getElementById('signupBtnHeader')?.addEventListener('click', () => { setCurrentView('signup') ; renderApp(); });
     }
+}
+
+// --- Main Render Function ---
+export function renderApp(): void {
+    renderHeaderButtons();
 
     // Render main content based on currentView
     switch (getCurrentView()) {

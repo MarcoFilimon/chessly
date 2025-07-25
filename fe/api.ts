@@ -1,5 +1,6 @@
 import { setToken, getToken, getRefreshToken} from './state';
-import {handleLogout} from './views/home';
+import { handleLogout } from './views/home';
+import { Tournament, Player } from './types';
 
 // --- FastAPI Configuration ---
 export const fastApiBaseUrl: string = 'http://localhost:8000/api/v1';
@@ -30,12 +31,11 @@ export async function apiFetch(input: RequestInfo, init: RequestInit = {}, retry
             setToken(data.access_token)
             localStorage.setItem('chessTournamentToken', token!);
             // Retry original request with new token
-            if (token) {
-                init.headers = {
-                    ...(init.headers || {}),
-                    'Authorization': `Bearer ${token}`,
-                };
-            }
+            init.headers = {
+                ...(init.headers || {}),
+                'Authorization': `Bearer ${data.access_token}`,
+            };
+
             response = await fetch(input, init);
         } else {
             // Refresh failed, force logout
@@ -47,14 +47,12 @@ export async function apiFetch(input: RequestInfo, init: RequestInit = {}, retry
 }
 
 
-
-export async function createTournament(payload: any): Promise<any> {
-    const token = getToken();
-    const response = await fetch(`${fastApiBaseUrl}/tournament`, {
+export async function createTournament(payload: Partial<Tournament>): Promise<Tournament> {
+    const response = await apiFetch(`${fastApiBaseUrl}/tournament`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify(payload)
     });
@@ -71,7 +69,7 @@ export async function createTournament(payload: any): Promise<any> {
     return await response.json();
 }
 
-export async function fetchTournaments(): Promise<any[]> {
+export async function fetchTournaments(): Promise<Tournament[]> {
     const response = await apiFetch(`${fastApiBaseUrl}/tournament`);
     if (!response.ok) {
         const error = await response.json();
@@ -80,7 +78,7 @@ export async function fetchTournaments(): Promise<any[]> {
     return await response.json();
 }
 
-export async function fetchTournament(tournamentId: Number): Promise<any> {
+export async function fetchTournament(tournamentId: number): Promise<Tournament> {
     const response = await apiFetch(`${fastApiBaseUrl}/tournament/${tournamentId}`);
     if (!response.ok) {
         const error = await response.json();
@@ -89,7 +87,7 @@ export async function fetchTournament(tournamentId: Number): Promise<any> {
     return await response.json();
 }
 
-export async function retrievePlayersForTournament(tournamentId: Number): Promise<any> {
+export async function retrievePlayersForTournament(tournamentId: number): Promise<Player[]> {
     const response = await apiFetch(`${fastApiBaseUrl}/player/${tournamentId}`);
     if (!response.ok) {
         const error = await response.json();
@@ -98,14 +96,13 @@ export async function retrievePlayersForTournament(tournamentId: Number): Promis
     return await response.json();
 }
 
-export async function addPlayerToTournament(payload: any): Promise<any> {
-    const token = getToken();
+export async function addPlayerToTournament(payload: Partial<Player>): Promise<Player> {
     const { name, rating, tournament_id } = payload;
-    const response = await fetch(`${fastApiBaseUrl}/player/${payload.tournament_id}`, {
+    const response = await apiFetch(`${fastApiBaseUrl}/player/${tournament_id}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify({ name, rating })
     });
@@ -125,11 +122,10 @@ export async function addPlayerToTournament(payload: any): Promise<any> {
 
 
 export async function deleteTournament(tournamentId: string): Promise<void> {
-    const token = getToken();
-    const response = await fetch(`${fastApiBaseUrl}/tournament/${tournamentId}`, {
+    const response = await apiFetch(`${fastApiBaseUrl}/tournament/${tournamentId}`, {
         method: 'DELETE',
         headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -139,11 +135,10 @@ export async function deleteTournament(tournamentId: string): Promise<void> {
 }
 
 export async function deletePlayer(playerId: string): Promise<void> {
-    const token = getToken();
-    const response = await fetch(`${fastApiBaseUrl}/player/${playerId}`, {
+    const response = await apiFetch(`${fastApiBaseUrl}/player/${playerId}`, {
         method: 'DELETE',
         headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -153,11 +148,10 @@ export async function deletePlayer(playerId: string): Promise<void> {
 }
 
 export async function deleteAllPlayers(currentTournamentId: number): Promise<void> {
-    const token = getToken();
-    const response = await fetch(`${fastApiBaseUrl}/player/tournament/${currentTournamentId}`, {
+    const response = await apiFetch(`${fastApiBaseUrl}/player/tournament/${currentTournamentId}`, {
         method: 'DELETE',
         headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {

@@ -6,6 +6,12 @@ export interface Player {
     tournament_id: number;
 }
 
+export interface Round {
+    id: number;
+    round_number: number;
+    matchups: Matchup[];
+}
+
 export enum TournamentStatus {
     NotStarted = "Not Started",
     Ongoing = "Ongoing",
@@ -16,8 +22,19 @@ export enum TournamentTimeControl {
     BULLET = "Bullet",
     BLITZ = "Blitz",
     RAPID = "Rapid",
-    CLASICCAL = "Classical"
+    CLASSICAL = "Classical"
 }
+
+export type MatchResult = "White-Wins" | "Black-Wins" | "Draw" | "";
+
+export interface Matchup {
+    id: number;
+    white_player: Player;
+    black_player: Player;
+    result?: MatchResult;
+}
+
+export type MatchupResult = { matchupId: string; result: string };
 
 export interface Tournament {
     id: number;
@@ -29,13 +46,6 @@ export interface Tournament {
     time_control: TournamentTimeControl;
     format: string;
     status: TournamentStatus;
-    players: Player[];
-    rounds: Array<any>;
-}
-
-export interface Matchup {
-    id: number;
-    white_player: Player;
-    black_player: Player;
-    result?: string;
+    players?: Array<Player>;
+    rounds?: Array<Round>;
 }

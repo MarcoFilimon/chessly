@@ -1,12 +1,14 @@
 import { Tournament } from './types';
 
-// --- Private state variables ---
+// --- State variables (saved in local storage) ---
 let userId: string | null = null;
 let userUsername: string | null = null;
 let userEmail: string | null = null;
 let refresh_token: string | null = null;
 let token: string | null = null;
-let currentView: string = 'home';
+
+type View = 'home' | 'viewTournamentDetail' | 'viewTournamentPlayers' | 'viewTournamentGames' | 'viewTournamentResults' | 'createTournament' | 'viewTournaments' | 'signup' | 'login';
+let currentView: View = 'home';
 
 let selectedRoundIdx: number = 0;
 let playerSortColumn: 'name' | 'rating' = 'name';
@@ -51,10 +53,10 @@ export function getToken(): string | null {
     return token;
 }
 
-export function setCurrentView(newCurrentView: string) {
+export function setCurrentView(newCurrentView: View) {
     currentView = newCurrentView;
 }
-export function getCurrentView(): string {
+export function getCurrentView(): View {
     return currentView;
 }
 

@@ -5,14 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chessly</title>
-
-    <!-- Tailwind CSS CDN - IMPORTANT: Include this directly in HTML -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Link to your custom CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -25,19 +19,19 @@
                     Home
                 </button>
                 <div id="authButtons" class="space-x-4 flex items-center">
-                    <!-- Buttons will be rendered here by JavaScript -->
+                    <!-- Buttons will be rendered here -->
                 </div>
             </div>
         </nav>
     </header>
 
     <main id="app-content" class="w-full max-w-7xl px-4">
-        <!-- Content will be rendered here by JavaScript -->
+        <!-- Content will be rendered here -->
     </main>
 
     <!-- Custom Modal Structure -->
     <div id="modalOverlay"
-        class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50">
+        class="modal-overlay hidden fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
             <p id="modalMessage" class="text-lg text-gray-800 mb-4"></p>
             <button id="modalCloseBtn"
@@ -46,9 +40,7 @@
             </button>
         </div>
     </div>
-
-    <!-- Link to your compiled JavaScript file -->
-    <script type="module" src="dist/script.js"></script>
+    <script type="module" src="./dist/script.js"></script>
 </body>
 
 </html>
