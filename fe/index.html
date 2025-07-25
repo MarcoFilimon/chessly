@@ -5,39 +5,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chessly</title>
-
-    <!-- Tailwind CSS CDN - IMPORTANT: Include this directly in HTML -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Link to your custom CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <header class="w-full bg-white shadow-md py-4 mb-8">
         <nav class="max-w-7xl mx-auto px-4 flex justify-between items-center">
-            <h1 id="logoHome" class="text-2xl font-bold text-blue-600 cursor-pointer">Chessly</h1>
+            <div class="flex items-center gap-3 cursor-pointer" id="logoHome">
+                <img src="assets/logo.png" alt="Chessly Logo" class="h-10 w-10 object-contain" />
+                <span class="text-2xl font-bold text-blue-600">Chessly</span>
+            </div>
             <div class="space-x-4 flex items-center">
                 <button id="homeBtn" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
                     Home
                 </button>
                 <div id="authButtons" class="space-x-4 flex items-center">
-                    <!-- Buttons will be rendered here by JavaScript -->
+                    <!-- Buttons will be rendered here -->
                 </div>
             </div>
         </nav>
     </header>
 
     <main id="app-content" class="w-full max-w-7xl px-4">
-        <!-- Content will be rendered here by JavaScript -->
+        <!-- Content will be rendered here -->
     </main>
 
     <!-- Custom Modal Structure -->
     <div id="modalOverlay"
-        class="modal-overlay fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50">
+        class="modal-overlay hidden fixed inset-0 bg-gray-600 bg-opacity-50 items-center justify-center z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
             <p id="modalMessage" class="text-lg text-gray-800 mb-4"></p>
             <button id="modalCloseBtn"
@@ -46,8 +43,6 @@
             </button>
         </div>
     </div>
-
-    <!-- Link to your compiled JavaScript file -->
     <script type="module" src="dist/script.js"></script>
 </body>
 

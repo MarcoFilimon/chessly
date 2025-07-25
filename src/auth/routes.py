@@ -125,7 +125,7 @@ async def delete_user(
     return await service.delete_user(user_id, session)
 
 
-@router.patch('/{user_id}', response_model=User)
+@router.put('/{user_id}', response_model=User)
 async def update_user(
     user_id: int,
     payload: UserUpdate,
