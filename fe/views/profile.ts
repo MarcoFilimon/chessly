@@ -1,5 +1,6 @@
 import { appContent } from "../dom.js";
-import { fetchProfile, updateProfile, sendVerificationEmail} from "../api.js";
+import { fetchProfile, updateProfile} from "../api/userAPI.js";
+import { sendVerificationEmail } from "../api/authAPI.js"
 import { Modal } from "../utils/general.js";
 import {UserUpdate} from "../types.js"
 import {setUserUsername, getUserUsername, getLastName, getFirstName} from '../state.js'

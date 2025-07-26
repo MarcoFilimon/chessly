@@ -1,19 +1,18 @@
 import {
     setCurrentView,
-    getCurrentView,
     getCurrentTournament,
     setCurrentTournament,
-    getToken,
     getTournaments,
     setSelectedRoundIdx
 } from '../state.js'
 
 import {
-    apiFetch,
-    fastApiBaseUrl,
     deleteTournament,
-    createTournament
-} from '../api.js'
+    startTournament,
+    createTournament,
+    updateTournament,
+    fetchTournament
+} from '../api/tournamentAPI.js'
 
 import {
     tabActive,
@@ -22,10 +21,9 @@ import {
 } from './navigationUtils.js'
 
 
-import {TournamentStatus, Tournament} from '../types.js'
+import {TournamentStatus, Tournament, TournamentTimeControl} from '../types.js'
 import {Modal, formatDate} from './general.js'
 import {renderApp} from '../views/home.js'
-import {renderTournamentGames} from '../views/tournamentGames.js'
 import {renderViewTournaments} from '../views/tournament.js'
 import {appContent} from '../dom.js'
 
@@ -53,36 +51,20 @@ export function attachStartEndTournamentHandlers() {
             return;
         }
         try {
-            const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}/start`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`
-                }
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || error.message || 'Failed to start tournament.');
-            }
+            const tournamentResp = await startTournament(currentTournament.id);
             Modal.show("Tournament started! All rounds have been generated.");
 
             // Refresh tournament data
-            setCurrentTournament(await response.json());
+            setCurrentTournament(tournamentResp!);
             setSelectedRoundIdx(0);
             setCurrentView('viewTournamentGames');
             renderApp();
 
             // Frontend is rendering before the backend has finished generating/populating all matchups for the last round
-            // Add this to force a refetch after a short delay:
+            // Force a refetch after a short delay
             setTimeout(async () => {
-                const resp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament!.id}`);
-                if (resp.ok) {
-                    setCurrentTournament(await resp.json());
-                    // If you're still on games view, re-render
-                    if (getCurrentView() === 'viewTournamentGames') {
-                        renderTournamentGames();
-                    }
-                }
+                const tournamentRes = await fetchTournament(currentTournament.id);
+                setCurrentTournament(tournamentRes)
             }, 300); // 300ms delay, adjust as needed
         } catch (error: any) {
             Modal.show(`Failed to start tournament: ${error.message}`);
@@ -99,19 +81,7 @@ export function attachStartEndTournamentHandlers() {
 
         try {
             currentTournament.status = TournamentStatus.Finished
-            const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`
-                },
-                body: JSON.stringify(currentTournament)
-            });
-            if (!response.ok) {
-                currentTournament.status = TournamentStatus.Ongoing
-                const error = await response.json();
-                throw new Error(error.detail || error.message || 'Failed to end the tournament.');
-            }
+            await updateTournament(currentTournament);
             Modal.show("Tournament ended! See the results.");
             setCurrentView('viewTournamentResults');
             renderApp();
@@ -151,29 +121,21 @@ function renderUpdateTournament(): void {
         e.preventDefault();
         const values = getTournamentFormValues();
         try {
-            type TournamentUpdate = Omit<Tournament, 'id' | 'players' | 'status' | 'rounds'>;
+            const actualPlayers = currentTournament.players ? currentTournament.players.length : 0;
+            if (values.nb_of_players < actualPlayers) {
+                throw new Error(`You have to manually delete already players before lowering their number. There are currently ${actualPlayers} players.`);
+            }
             if (!isTournament(currentTournament)) {
                 Modal.show("Tournament not found.");
                 return;
             }
-            const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`
-                },
-                body: JSON.stringify(values as TournamentUpdate)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                if (error.detail && Array.isArray(error.detail)) {
-                    const messages = error.detail.map((e: any) => e.msg).join('; ');
-                    throw new Error(messages);
-                }
-                throw new Error(error.detail || error.message || 'Failed to update tournament.');
-            }
-
+            // Merge values into currentTournament for update
+            const updatedTournament = {
+                ...currentTournament,
+                ...values,
+                time_control: values.time_control as TournamentTimeControl
+            };
+            await updateTournament(updatedTournament);
             Modal.show("Tournament updated successfully!");
             setCurrentView('viewTournaments');
             renderApp();

@@ -23,6 +23,11 @@ export interface Player {
     tournament_id: number;
 }
 
+export type PlayerUpdate = {
+    name?: string;
+    rating?: number;
+}
+
 export interface Round {
     id: number;
     round_number: number;

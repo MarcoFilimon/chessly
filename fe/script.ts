@@ -18,6 +18,8 @@ function attachGlobalEvents() {
 window.onload = function() {
     renderApp();
 
+
+    // To be implemented properly.
     const urlParams = new URLSearchParams(window.location.search);
     const verificationToken = urlParams.get('verify');
     if (verificationToken) {

@@ -11,12 +11,15 @@ import {
 
 import {
     addPlayerToTournament,
-    apiFetch,
-    fastApiBaseUrl,
-    fetchTournament,
     deleteAllPlayers,
-    deletePlayer
-} from '../api.js'
+    deletePlayer,
+    updatePlayer,
+} from '../api/playerAPI.js'
+
+import {
+    fetchTournament,
+    generatePlayers
+} from "../api/tournamentAPI.js"
 
 import { Modal } from './general.js'
 import { isTournament } from './tournamentUtils.js'
@@ -189,40 +192,19 @@ export function renderUpdatePlayer(playerId: number): void {
 
     document.getElementById('updatePlayerForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!isTournament(currentTournament)) {
+            Modal.show("Tournament not found.");
+            return;
+        }
         const name = (document.getElementById('updatePlayerName') as HTMLInputElement).value.trim();
         const rating = Number((document.getElementById('updatePlayerRating') as HTMLInputElement).value);
-
         try {
             const payload = { name, rating };
-            const response = await fetch(`${fastApiBaseUrl}/player/${playerId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                if (error.detail && Array.isArray(error.detail)) {
-                    const messages = error.detail.map((e: any) => e.msg).join('; ');
-                    throw new Error(messages);
-                }
-                throw new Error(error.detail || error.message || 'Failed to update player.');
-            }
-
-            if (!isTournament(currentTournament)) {
-                Modal.show("Tournament not found.");
-                return;
-            }
-
+            await updatePlayer(payload, playerId);
             Modal.show("Player updated successfully!");
+            const tournamentResp = await fetchTournament(currentTournament.id);
             // Refresh tournament data
-            const tournamentResp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
-            if (tournamentResp.ok) {
-                setCurrentTournament(await tournamentResp.json());
-            }
+            setCurrentTournament(tournamentResp);
             setCurrentView('viewTournamentPlayers');
             renderApp();
         } catch (error: any) {
@@ -305,22 +287,10 @@ export function attachPlayerTableListeners() {
                 return;
             }
             try {
-                const response = await fetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}/generate_players`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${getToken()}`
-                    }
-                });
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || error.message || 'Failed to generate players.');
-                }
-
-                const tournamentResp = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
-                if (tournamentResp.ok) {
-                    setCurrentTournament(await tournamentResp.json());
-                }
+                await generatePlayers(currentTournament.id);
+                const tournamentResp = await fetchTournament(currentTournament.id);
+                // Refresh tournament data
+                setCurrentTournament(tournamentResp);
                 renderTournamentPlayers();
             } catch (error: any) {
                 Modal.show(`Failed to generate players: ${error.message}`);
@@ -342,10 +312,9 @@ export function attachPlayerTableListeners() {
                 await deleteAllPlayers(currentTournament.id);
                 Modal.show("Players deleted successfully!");
 
-                const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`);
-                if (response.ok) {
-                    setCurrentTournament(await response.json());
-                }
+                const tournamentResp = await fetchTournament(currentTournament.id);
+                // Refresh tournament data
+                setCurrentTournament(tournamentResp);
                 renderTournamentPlayers();
             } catch (error: any) {
                 Modal.show(`Failed to delete players: ${error.message}`);
@@ -364,10 +333,9 @@ export function attachPlayerTableListeners() {
                 await deletePlayer(playerId);
                 Modal.show('Player deleted successfully!');
 
-                const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament!.id}`);
-                if (response.ok) {
-                    setCurrentTournament(await response.json());
-                }
+                const tournamentResp = await fetchTournament(currentTournament!.id);
+                // Refresh tournament data
+                setCurrentTournament(tournamentResp);
                 await renderTournamentPlayers();
             } catch (error: any) {
                 Modal.show(`Failed to delete player: ${error.message}`);

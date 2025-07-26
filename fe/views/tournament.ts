@@ -5,7 +5,7 @@ import {
 
 import {
     fetchTournaments,
-} from '../api.js'
+} from '../api/tournamentAPI.js'
 
 import {renderTournamentsTabContent, attachTournamentCreateListeners} from '../utils/tournamentUtils.js'
 import {appContent} from '../dom.js'

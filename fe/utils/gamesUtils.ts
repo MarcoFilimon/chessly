@@ -1,8 +1,7 @@
 import {
-    fastApiBaseUrl,
     fetchTournament,
-    apiFetch
-} from '../api.js'
+    batchUpdatePlayerResults
+} from '../api/tournamentAPI.js'
 
 import {
     getCurrentView,
@@ -44,18 +43,7 @@ export function attachSaveResultsButtonHandler(currentTournament: Tournament) {
 
         // Batch API call to update tournament results
         try {
-            const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}/round_result/${getSelectedRoundIdx() + 1}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ results })
-            });
-            if (!response.ok) {
-                const error = await response.json();
-                console.error(error);
-                throw new Error(error.detail || error.message || 'Failed to save results.');
-            }
+            await batchUpdatePlayerResults(currentTournament.id, results);
             Modal.show("Results saved successfully!");
             // Refresh tournament data
             try {

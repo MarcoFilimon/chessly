@@ -1,101 +1,106 @@
 import { Tournament } from './types.js';
 
 // --- State variables (saved in local storage) ---
-let userId: string | null = null;
-let userUsername: string | null = null;
-let userFirstName: string | null = null;
-let userLastName: string | null = null;
-let userEmail: string | null = null;
-let refresh_token: string | null = null;
-let token: string | null = null;
+let _userId: string | null = null;
+let _userUsername: string | null = null;
+let _userFirstName: string | null = null;
+let _userLastName: string | null = null;
+let _userEmail: string | null = null;
+let _refresh_token: string | null = null;
+let _token: string | null = null;
 
-type View = 'home' | 'viewTournamentDetail' | 'viewTournamentPlayers' | 'viewTournamentGames' | 'viewTournamentResults' | 'createTournament' | 'viewTournaments' | 'signup' | 'login' | 'viewUser';
-let currentView: View = 'home';
+// --- Other state variables ---
 
-let selectedRoundIdx: number = 0;
-let playerSortColumn: 'name' | 'rating' = 'name';
-let playerSortDirection: 'asc' | 'desc' = 'asc';
+let _selectedRoundIdx: number = 0;
+let _playerSortColumn: 'name' | 'rating' = 'name';
+let _playerSortDirection: 'asc' | 'desc' = 'asc';
 
 let _tournaments: Tournament[] = [];
 let _currentTournament: Tournament | null = null;
 
+type View = 'home' | 'viewTournamentDetail' | 'viewTournamentPlayers' |
+            'viewTournamentGames' | 'viewTournamentResults' | 'createTournament' |
+            'viewTournaments' | 'signup' | 'login' | 'viewUser';
+let _currentView: View = 'home'; // default is home
+
+
 // --- Getters and setters ---
 export function setUserId(id: string | null) {
-    userId = id;
+    _userId = id;
 }
 export function getUserId(): string | null {
-    return userId;
+    return _userId;
 }
 
 export function setUserUsername(username: string | null) {
-    userUsername = username;
+    _userUsername = username;
 }
 export function getUserUsername(): string | null {
-    return userUsername;
+    return _userUsername;
 }
 
 export function setFirstName(firstName: string | null) {
-    userFirstName = firstName;
+    _userFirstName = firstName;
 }
 export function getFirstName(): string | null {
-    return userFirstName;
+    return _userFirstName;
 }
 
 export function setLastName(lastName: string | null) {
-    userLastName = lastName;
+    _userLastName = lastName;
 }
 export function getLastName(): string | null {
-    return userLastName;
+    return _userLastName;
 }
 
 export function setUserEmail(email: string | null) {
-    userEmail = email;
+    _userEmail = email;
 }
 
 export function getUserEmail(): string | null {
-    return userEmail;
+    return _userEmail;
 }
 
 export function setRefreshToken(tokenValue: string | null) {
-    refresh_token = tokenValue;
+    _refresh_token = tokenValue;
 }
 export function getRefreshToken(): string | null {
-    return refresh_token;
+    return _refresh_token;
 }
 
 export function setToken(newToken: string | null) {
-    token = newToken;
+    _token = newToken;
 }
 export function getToken(): string | null {
-    return token;
+    return _token;
 }
 
 export function setCurrentView(newCurrentView: View) {
-    currentView = newCurrentView;
+    _currentView = newCurrentView;
 }
 export function getCurrentView(): View {
-    return currentView;
+    return _currentView;
 }
 
 export function setSelectedRoundIdx(roundIdx: number) {
-    selectedRoundIdx = roundIdx;
+    _selectedRoundIdx = roundIdx;
 }
 export function getSelectedRoundIdx(): number {
-    return selectedRoundIdx;
+    return _selectedRoundIdx;
 }
 
 export function setPlayerSortColumn(sortBy: 'name' | 'rating') {
-    playerSortColumn = sortBy;
+    _playerSortColumn = sortBy;
 }
 export function getPlayerSortColumn(): 'name' | 'rating' {
-    return playerSortColumn;
+    return _playerSortColumn;
 }
 
 export function setPlayerSortDirection(sortOrder: 'asc' | 'desc') {
-    playerSortDirection = sortOrder;
+    _playerSortDirection = sortOrder;
 }
 export function getPlayerSortDirection(): 'asc' | 'desc' {
-    return playerSortDirection;
+    return _playerSortDirection;
 }
 
 export function setTournaments(tournaments: Tournament[]) {

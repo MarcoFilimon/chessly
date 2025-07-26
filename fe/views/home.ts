@@ -12,15 +12,15 @@ import {
     setTournaments,
     setRefreshToken,
     getRefreshToken,
-    getFirstName,
-    getLastName,
     setFirstName,
     setLastName
 } from '../state.js'
 
 import {
-    fastApiBaseUrl,
-} from '../api.js'
+    login,
+    register,
+    logout
+} from '../api/authAPI.js'
 
 import {Modal} from '../utils/general.js'
 import {appContent, authButtonsContainer} from '../dom.js'
@@ -42,6 +42,8 @@ import {renderTournamentResults} from './tournamentResults.js'
 
 import { renderViewUser } from './profile.js'
 
+import { User } from '../types.js'
+
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
     const usernameInput = document.getElementById('loginUsername') as HTMLInputElement;
@@ -50,38 +52,22 @@ async function handleLogin(e: Event): Promise<void> {
     const password = passwordInput.value;
 
     try {
-        const response = await fetch(`${fastApiBaseUrl}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: username, password: password }),
-        });
+        const userData = await login(username, password);
+        setToken(userData.token);
+        setRefreshToken(userData.refresh_token)
+        setUserId(userData.user.id);
+        setUserUsername(userData.user.username);
+        setUserEmail(userData.user.email);
+        setFirstName(userData.user.first_name);
+        setLastName(userData.user.last_name)
+        localStorage.setItem('chessTournamentUserId', getUserId() as string);
+        localStorage.setItem('chessTournamentUsername', getUserUsername() as string);
+        localStorage.setItem('chessTournamentEmail', getUserEmail() as string);
+        localStorage.setItem('chessTournamentRefreshToken', getRefreshToken() as string);
+        localStorage.setItem('chessTournamentToken', getToken() as string);
+        setCurrentView('home');
+        renderApp(); // Re-render after login
 
-        const data = await response.json();
-
-        if (response.ok) {
-            setUserId(data.user.id);
-            setRefreshToken(data.refresh_token)
-            setToken(data.token);
-            setUserUsername(data.user.username);
-            setUserEmail(data.user.email);
-            setFirstName(data.user.first_name);
-            setLastName(data.user.last_name)
-            localStorage.setItem('chessTournamentUserId', getUserId() as string);
-            localStorage.setItem('chessTournamentUsername', getUserUsername() as string);
-            localStorage.setItem('chessTournamentEmail', getUserEmail() as string);
-            localStorage.setItem('chessTournamentRefreshToken', getRefreshToken() as string);
-            localStorage.setItem('chessTournamentToken', getToken() as string);
-            setCurrentView('home');
-            renderApp(); // Re-render after login
-        } else {
-            // Handle Pydantic validation errors (422)
-            if (data.detail && Array.isArray(data.detail)) {
-                // Combine all error messages
-                const messages = data.detail.map((e: any) => e.msg).join('; ');
-                throw new Error(messages);
-            }
-            throw new Error(data.detail || data.message || 'Login failed.');
-        }
     } catch (error: any) {
         console.error("Error logging in:", error);
         Modal.show(`Login failed: ${error.message}`);
@@ -96,40 +82,23 @@ async function handleSignup(e: Event): Promise<void> {
     const firstNameInput = document.getElementById('signupFirstName') as HTMLInputElement;
     const lastNameInput = document.getElementById('signupLastName') as HTMLInputElement;
 
-    const username = usernameInput.value;
-    const email = emailInput.value;
-    const password = passwordInput.value;
-    const first_name = firstNameInput.value || null;
-    const last_name = lastNameInput.value || null;
+    const payload: Partial<User> = {
+        username: usernameInput.value,
+        email: emailInput.value,
+        password: passwordInput.value,
+    };
 
+    if (firstNameInput.value.trim()) {
+        payload.first_name = firstNameInput.value.trim();
+    }
+    if (lastNameInput.value.trim()) {
+        payload.last_name = lastNameInput.value.trim();
+    }
     try {
-        const response = await fetch(`${fastApiBaseUrl}/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username,
-                email,
-                password,
-                first_name,
-                last_name
-            }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            Modal.show(data.message);
-            setCurrentView('home');
-            renderApp();
-        } else {
-            // Handle Pydantic validation errors (422)
-            if (data.detail && Array.isArray(data.detail)) {
-                // Combine all error messages
-                const messages = data.detail.map((e: any) => e.msg).join('; ');
-                throw new Error(messages);
-            }
-            throw new Error(data.detail || data.message || 'Signup failed.');
-        }
+        await register(payload);
+        Modal.show("Account Created! Check your email to verify the account.")
+        setCurrentView('home');
+        renderApp();
     } catch (error: any) {
         console.error("Error signing up:", error);
         Modal.show(`Signup failed: ${error.message}`);
@@ -138,16 +107,13 @@ async function handleSignup(e: Event): Promise<void> {
 
 export async function handleLogout(): Promise<void> {
     try {
-        // Optionally, inform FastAPI about logout if it manages sessions
-        await fetch(`${fastApiBaseUrl}/auth/logout`, { method: 'POST' });
-
+        await logout();
         setUserId(null);
         localStorage.removeItem('chessTournamentUserId');
         localStorage.removeItem('chessTournamentUsername');
         localStorage.removeItem('chessTournamentRefreshToken');
         localStorage.removeItem('chessTournamentToken');
         localStorage.removeItem('chessTournamentEmail');
-
         setTournaments([]);
         setCurrentView('home');
         renderApp(); // Re-render after logout
