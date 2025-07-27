@@ -209,15 +209,3 @@ async def reset_password(
         content={"message": "Error occured during password reset."},
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
-
-
-# @router.get('/top_10')
-# async def get_top_ten():
-#     import httpx
-#     url = "https://lichess.org/api/player"
-#     async with httpx.AsyncClient() as client:
-#         response = await client.get(url)
-#         if response.status_code == 200:
-#             return {"data": response.json()}
-#         else:
-#             return {"error:" f"Failed to fetch data: {response.status_code}"}

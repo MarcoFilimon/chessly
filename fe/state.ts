@@ -20,7 +20,8 @@ let _currentTournament: Tournament | null = null;
 
 type View = 'home' | 'viewTournamentDetail' | 'viewTournamentPlayers' |
             'viewTournamentGames' | 'viewTournamentResults' | 'createTournament' |
-            'viewTournaments' | 'signup' | 'login' | 'viewUser';
+            'viewTournaments' | 'signup' | 'login' | 'viewUser' |
+            'viewLichess';
 let _currentView: View = 'home'; // default is home
 
 

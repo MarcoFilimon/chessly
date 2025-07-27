@@ -90,3 +90,5 @@ desktop.ini
 
 # Schemathesis
 .hypothesis/
+
+node_modules/

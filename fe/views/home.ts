@@ -44,6 +44,8 @@ import { renderViewUser } from './profile.js'
 
 import { User } from '../types.js'
 
+import { renderLichess } from './lichessView.js'
+
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
     const usernameInput = document.getElementById('loginUsername') as HTMLInputElement;
@@ -282,6 +284,9 @@ function renderHeaderButtons(): void {
             <button id="viewBtnHeader" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
                 Tournaments
             </button>
+            <button id="viewLichess" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
+                LichessAPI
+            </button>
             <button id="viewUser" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
                 ${getUserUsername()}
             </button>
@@ -292,6 +297,7 @@ function renderHeaderButtons(): void {
         document.getElementById('createBtnHeader')?.addEventListener('click', () => { setCurrentView('createTournament') ; renderApp(); });
         document.getElementById('viewBtnHeader')?.addEventListener('click', () => { setCurrentView('viewTournaments') ; renderApp(); });
         document.getElementById('viewUser')?.addEventListener('click', () => { setCurrentView('viewUser') ; renderApp(); });
+        document.getElementById('viewLichess')?.addEventListener('click', () => { setCurrentView('viewLichess') ; renderApp(); });
         document.getElementById('logoutBtnHeader')?.addEventListener('click', handleLogout);
     } else {
         authButtonsContainer.innerHTML = `
@@ -336,6 +342,9 @@ export function renderApp(): void {
             break;
         case 'viewUser':
             renderViewUser();
+            break;
+        case 'viewLichess':
+            renderLichess();
             break;
         case 'login':
             renderLogin();
