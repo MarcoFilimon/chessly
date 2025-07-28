@@ -1,7 +1,15 @@
 import { homeBtn, logoHome, modalCloseBtn } from "./dom.js";
 import { Modal } from "./utils/general.js";
-import { setCurrentView } from "./state.js";
 import { renderApp } from "./views/home.js";
+
+import {
+    setCurrentView,
+    setUserUsername,
+    setUserId,
+    setUserEmail,
+    setToken,
+    setRefreshToken,
+} from './state.js'
 
 function attachGlobalEvents() {
     homeBtn.addEventListener('click', () => {
@@ -16,6 +24,12 @@ function attachGlobalEvents() {
 }
 
 window.onload = function() {
+    setUserId(localStorage.getItem('chessTournamentUserId'));
+    setUserUsername(localStorage.getItem('chessTournamentUsername'));
+    setUserEmail(localStorage.getItem('chessTournamentEmail'));
+    setRefreshToken(localStorage.getItem('chessTournamentRefreshToken'));
+    setToken(localStorage.getItem('chessTournamentToken'));
+
     renderApp();
 
 

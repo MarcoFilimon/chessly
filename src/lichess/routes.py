@@ -137,3 +137,21 @@ async def make_move(payload: Move):
                 "error": f"Failed to make the move {data['move']}: {response.status_code}",
                 "details": response.text
             }
+
+@router.get('/game_state/{gameId}', status_code=status.HTTP_200_OK)
+async def get_game_state(
+    gameId: str
+):
+    import httpx
+    url = f"https://lichess.org/api/board/game/stream/{gameId}"
+    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    async with httpx.AsyncClient(timeout=None) as client:
+        response = await client.get(url, headers=headers)
+        if response.status_code == 200:
+            return {"data": response.text}
+        else:
+            return {"error:" f"Failed to fetch data: {response.status_code}"}
+

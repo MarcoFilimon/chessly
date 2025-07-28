@@ -87,21 +87,33 @@ async function renderOngoingGames() {
                         <button type="button" id="sendMove-${game.fullId}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                             Make move!
                         </button>
-
                     </div>
-                    <div id="board-${game.fullId}" style="width: 400px"></div>
                 </div>
+                <div id="board-${game.fullId}" style="width: 400px"></div>
             `;
         }).join('');
 
+        const boardDivId = `board-${games[0].fullId}`;
+            const boardDiv = document.getElementById(boardDivId);
+            var config = {
+                position: 'start',
+                draggable: true,
+                dropOffBoard: 'trash'
+            }
+            if (boardDiv) {
+                // @ts-ignore
+                var board2 = Chessboard(boardDivId, config)
+            }
+
+            // <button id="startBtn-${game.fullId}">Start Position</button>
+            // <button id="clearBtn-${game.fullId}">Clear Board</button>
+            // const startBtn = document.getElementById(`startBtn-${game.fullId}`);
+            // const clearBtn = document.getElementById(`clearBtn-${game.fullId}`);
+            // if (startBtn) startBtn.addEventListener('click', () => board2.start());
+            // if (clearBtn) clearBtn.addEventListener('click', () => board2.clear());
+
         // Attach event listeners for each move button
         games.forEach((game: any) => {
-            // const boardDivId = `board-${game.fullId}`;
-            // const boardDiv = document.getElementById(boardDivId);
-            // if (boardDiv) {
-            //     Chessboard(boardDivId, 'start');
-            // }
-
             const btn = document.getElementById(`sendMove-${game.fullId}`);
             const input = document.getElementById(`moveToMake-${game.fullId}`) as HTMLInputElement;
             if (btn && input) {

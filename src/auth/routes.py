@@ -101,7 +101,7 @@ async def get_current_user(
     return user
 
 
-@router.get('/logout')
+@router.post('/logout')
 async def logout(token_details: dict = Depends(AccessTokenBearer())):
     '''
     Logout user.
