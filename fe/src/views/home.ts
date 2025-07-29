@@ -42,7 +42,7 @@ import {renderTournamentResults} from './tournamentResults.js'
 
 import { renderViewUser } from './profile.js'
 
-import { User } from '../types.js'
+import type { User } from '../types.js'
 
 import { renderLichess } from './lichessView.js'
 

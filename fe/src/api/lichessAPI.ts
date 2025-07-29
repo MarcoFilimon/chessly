@@ -22,7 +22,8 @@ export async function getOngoingGames(): Promise<any> {
 }
 
 
-export async function makeMove(gameId: string, move: string): Promise<void> {
+export async function makeMove(gameId: string, source: string, target: string): Promise<void> {
+    const move = source + target
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/make_move`, {
         method: 'POST',
         headers: {
@@ -40,5 +41,29 @@ export async function makeMove(gameId: string, move: string): Promise<void> {
             throw new Error(messages);
         }
         throw new Error(error.detail || error.message || 'Failed to send the move.');
+    }
+}
+
+export async function listenForMoves(gameId: string, onMove: (fen: string) => void) {
+    const response = await fetch(`/api/lichess/stream_moves/${gameId}`);
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let lines = buffer.split('\n');
+        buffer = lines.pop()!; // last line may be incomplete
+        for (const line of lines) {
+            if (!line.trim()) continue;
+            const event = JSON.parse(line);
+            if (event.type === 'gameFull' || event.type === 'gameState') {
+                // event.state.moves is a space-separated list of SAN moves
+                // event.state.fen is the current FEN
+                onMove(event.state.fen);
+            }
+        }
     }
 }

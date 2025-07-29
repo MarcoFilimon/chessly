@@ -1,5 +1,5 @@
 import { appContent } from "../dom.js";
-import { getLichessUserInfo, getOngoingGames, makeMove} from '../api/lichessAPI.js'
+import { getLichessUserInfo, getOngoingGames, makeMove, listenForMoves} from '../api/lichessAPI.js'
 import { Modal } from "../utils/general.js";
 
 declare global {
@@ -7,6 +7,8 @@ declare global {
         Chessboard: any;
     }
 }
+
+import { Chess } from 'chess.js';
 
 export async function renderLichess() {
     appContent.innerHTML = `
@@ -78,8 +80,8 @@ async function renderOngoingGames() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${games.map((game: any) => {
-                        const opponent = game.opponent;
+                    ${games.map((lichessGame: any) => {
+                        const opponent = lichessGame.opponent;
                         const opponentName = opponent.username;
                         const opponentRating = opponent.rating;
                         const opponentProfile = `https://lichess.org/@/${opponentName}`;
@@ -91,12 +93,12 @@ async function renderOngoingGames() {
                                     </a>
                                 </td>
                                 <td class="px-4 py-2">${opponentRating}</td>
-                                <td class="px-4 py-2">${game.color}</td>
+                                <td class="px-4 py-2">${lichessGame.color}</td>
                                 <td class="px-4 py-2">
-                                    <a href="https://lichess.org/${game.fullId}" target="_blank" class="text-blue-600 underline">View</a>
+                                    <a href="https://lichess.org/${lichessGame.fullId}" target="_blank" class="text-blue-600 underline">View</a>
                                 </td>
                                 <td class="px-4 py-2">
-                                    <button type="button" class="go-play-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded" data-game-id="${game.fullId}">
+                                    <button type="button" class="go-play-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded" data-game-id="${lichessGame.fullId}">
                                         Go Play
                                     </button>
                                 </td>
@@ -122,70 +124,93 @@ async function renderOngoingGames() {
     }
 }
 
-function renderGameBoard(game: any) {
+function updateStatus(game: any) {
+    let status = ''
+    let moveColor = 'White'
+    if (game.turn() === 'b')
+        moveColor = 'Black'
+    // checkmate?
+    if (game.isCheckmate())
+        status = 'Game over, ' + moveColor + ' is in checkmate.'
+    // draw?
+    else if (game.isDraw())
+        status = 'Game over, drawn position.'
+    else { // game still on
+        status = moveColor + ' to move.'
+        // check?
+        if (game.inCheck())
+            status += ', ' + moveColor + ' is in check.'
+    }
+    // Show status in the UI
+    const statusDiv = document.getElementById('game-status');
+    if (statusDiv) statusDiv.textContent = status;
+}
+
+function renderContent(lichessGame: any) {
     appContent.innerHTML = `
         <div class="max-w-xl mx-auto bg-white rounded-lg shadow-lg p-6">
             <button id="backToGamesBtn" class="mb-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-4 rounded">
                 ← Back to Games
             </button>
             <h2 class="text-2xl font-bold mb-4 text-center">Game vs
-                <a href="https://lichess.org/@/${game.opponent.username}" target="_blank" class="text-blue-600 underline">
-                    ${game.opponent.username}
+                <a href="https://lichess.org/@/${lichessGame.opponent.username}" target="_blank" class="text-blue-600 underline">
+                    ${lichessGame.opponent.username}
                 </a>
             </h2>
-            <div class="flex flex-col items-center mb-4">
-                <div id="board-${game.fullId}" style="width: 400px"></div>
-                <div class="mt-4 flex gap-2">
-                    <input type="text" id="moveInput" class="px-4 py-2 border rounded" placeholder="Enter move (UCI, e.g. e2e4)">
-                    <button id="sendMoveBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Send Move</button>
-                </div>
-            </div>
-            <div class="text-center text-gray-600">
-                <span>Playing as: <strong>${game.color}</strong></span>
-                <span class="ml-4">Game: <a href="https://lichess.org/${game.fullId}" target="_blank" class="text-blue-600 underline">${game.fullId}</a></span>
-            </div>
+            <div id="board-${lichessGame.fullId}" style="width: 400px"></div>
+            <!-- <span class="ml-4"><a href="https://lichess.org/${lichessGame.fullId}" target="_blank" class="text-blue-600 underline">${lichessGame.fullId}</a></span> -->
+            <div id="game-status"></div>
         </div>
     `;
+}
 
+function renderGameBoard(lichessGame: any) {
+    renderContent(lichessGame);
     try {
-        const my_chess = new Chess(game.fen || 'start');
-        const board = window.Chessboard(`board-${game.fullId}`, {
-            position: my_chess.fen(),
+        const game = new Chess(lichessGame.fen || 'start');
+        updateStatus(game);
+        const board = window.Chessboard(`board-${lichessGame.fullId}`, {
+            position: game.fen(),
+            orientation: lichessGame.color,
             draggable: true,
-            onDrop: (source: string, target: string) => {
-                const move = my_chess.move({ from: source, to: target, promotion: 'q' });
+            async onDrop(source: string, target: string) {
+                const move = game.move({ from: source, to: target, promotion: 'q' });
                 if (move === null) return 'snapback';
-                // Optionally send move to backend here
-                board.position(my_chess.fen()); // Update board after valid move
+                await makeMove(lichessGame.fullId, source, target);
+                updateStatus(game);
+                board.position(game.fen()); // Update board after valid move
+            },
+            onDragStart(source: string, piece: string, position: string, orientation: string) {
+                if (game.isGameOver()) return false;
+                // only pick the pieces of the side to move
+                const turnColor = game.turn();
+                const pieceColor = piece.charAt(0); // 'w' or 'b'
+                if ((turnColor === 'w' && pieceColor === 'b') ||
+                    (turnColor === 'b' && pieceColor === 'w')) {
+                    console.log(`It's ${turnColor}'s turn, but you are trying to drag a ${pieceColor} piece. Preventing drag.`);
+                    return false;
+                }
+                return true;
+            },
+            // update the board position after the piece snap
+            // for castling, en passant, pawn promotion
+            onSnapEnd() {
+                updateStatus(game);
+                board.position(game.fen());
             }
         });
-        console.log(`Chessboard initialized for game ${game.fullId}`); // Add a log for debugging
+        listenForMoves(lichessGame.fullId, (fen: string) => {
+            game.load(fen); // update chess.js state
+            board.position(fen); // update the board
+            updateStatus(game);
+        });
+        console.log(`Chessboard initialized for game ${lichessGame.fullId}`);
     } catch (error) {
         console.error("Error initializing Chessboard:", error);
-        // You might want to display a user-friendly error message here
         Modal.show("Failed to load chess board. Please check console for details.");
     }
 
-
-    // Back button event
-    // Attach event listeners AFTER the HTML is in the DOM
     document.getElementById('backToGamesBtn')?.addEventListener('click', async () => {
         await renderLichess();
-    });
-
-    // Send move event
-    document.getElementById('sendMoveBtn')?.addEventListener('click', async () => {
-        const move = (document.getElementById('moveInput') as HTMLInputElement).value.trim();
-        if (!move) {
-            Modal.show("Please enter a move in UCI format (e.g. e2e4)");
-            return;
-        }
-        try {
-            await makeMove(game.fullId, move);
-            Modal.show("Move sent!");
-            // Optionally, update the board position here or re-fetch game state
-        } catch (error: any) {
-            Modal.show("Failed to send move: " + error.message);
-        }
     });
 }

@@ -30,18 +30,6 @@ full_access = RoleChecker(['admin', 'user'])
 admin_access = RoleChecker(['admin'])
 
 
-@router.get('/top_10', status_code=status.HTTP_200_OK)
-async def get_top_ten():
-    import httpx
-    url = "https://lichess.org/api/player"
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        if response.status_code == 200:
-            return {"data": response.json()}
-        else:
-            return {"error:" f"Failed to fetch data: {response.status_code}"}
-
-
 @router.post('/lichess/follow/{username}', status_code=status.HTTP_201_CREATED)
 async def follow_lichess_user(username: str):
     import httpx
@@ -117,6 +105,39 @@ async def get_ongoing_games():
             return {"error:" f"Failed to fetch data: {response.status_code}"}
 
 
+@router.get('/stream_moves/{gameId}', status_code=status.HTTP_200_OK)
+async def stream_moves(gameId: str):
+    import httpx
+    url = f"https://lichess.org/api/stream/game/{gameId}"
+    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    timeout_seconds = 15.0
+    try:
+        async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+            response = await client.get(url, headers=headers)
+            if response.status_code == 200:
+                data = response.text
+                return {"data": response.text}
+            else:
+                return {"error:" f"Failed to fetch data: {response.status_code}"}
+    except httpx.TimeoutException:
+        return {
+            "error": f"Timeout was reached while trying to make move {data['move']}. Lichess server might be slow or unreachable.",
+            "details": f"Attempted to connect to {url} with a timeout of {timeout_seconds} seconds."
+        }
+    except httpx.RequestError as exc:
+        return {
+            "error": f"An HTTP error occurred while requesting {exc.request.url!r}.",
+            "details": str(exc)
+        }
+    except Exception as e:
+        return {
+            "error": f"An unexpected error occurred: {type(e).__name__}",
+            "details": str(e)
+        }
+
 @router.post('/make_move', status_code=status.HTTP_201_CREATED)
 async def make_move(payload: Move):
     import httpx
@@ -127,7 +148,7 @@ async def make_move(payload: Move):
         "Authorization": f"Bearer {lichess_token}"
     }
     params = {}
-    params["offeringDraw"] = "true"
+    # params["offeringDraw"] = "true"
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, params=params)
         if response.status_code == 200:
@@ -137,21 +158,3 @@ async def make_move(payload: Move):
                 "error": f"Failed to make the move {data['move']}: {response.status_code}",
                 "details": response.text
             }
-
-@router.get('/game_state/{gameId}', status_code=status.HTTP_200_OK)
-async def get_game_state(
-    gameId: str
-):
-    import httpx
-    url = f"https://lichess.org/api/board/game/stream/{gameId}"
-    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
-    headers = {
-        "Authorization": f"Bearer {lichess_token}"
-    }
-    async with httpx.AsyncClient(timeout=None) as client:
-        response = await client.get(url, headers=headers)
-        if response.status_code == 200:
-            return {"data": response.text}
-        else:
-            return {"error:" f"Failed to fetch data: {response.status_code}"}
-

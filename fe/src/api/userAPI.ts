@@ -1,5 +1,5 @@
 import { getToken, getUserId} from '../state.js';
-import { UserUpdate, User } from '../types.js';
+import { type UserUpdate, type User } from '../types.js';
 import {fastApiBaseUrl, apiFetch} from './utilsAPI.js'
 
 

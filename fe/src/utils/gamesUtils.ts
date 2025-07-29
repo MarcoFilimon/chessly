@@ -8,7 +8,7 @@ import {
     setCurrentTournament,
 } from '../state.js'
 
-import {Matchup, TournamentStatus, Tournament, MatchupResult} from '../types.js'
+import {type Matchup, type Tournament, type MatchupResult} from '../types.js'
 import {Modal} from './general.js'
 
 import {
@@ -111,7 +111,7 @@ export function renderSelectedRound(currentTournament: Tournament) {
                                 <td class="px-4 py-2 border-b text-center">${m.white_player.name}</td>
                                 <td class="px-4 py-2 border-b text-center">
                                     ${
-                                        currentTournament!.status === TournamentStatus.Ongoing
+                                        currentTournament!.status === "Ongoing"
                                         ? `<select class="result-select text-center" data-matchup-id="${m.id}" style="text-align-last: center;">
                                                 <option value="" ${!m.result ? "selected" : ""}>Select</option>
                                                 <option value="White-Wins" ${m.result === "White-Wins" ? "selected" : ""}>1 - 0</option>
@@ -134,7 +134,7 @@ export function renderSelectedRound(currentTournament: Tournament) {
             `;
         }
     }
-    if (currentTournament.status === TournamentStatus.Ongoing) {
+    if (currentTournament.status === "Ongoing") {
         roundTableHtml += `
             <div class="flex justify-end mt-4">
                 <button id="saveResultsBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">

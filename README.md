@@ -20,3 +20,7 @@ Docker:
 Docs:
 - http://localhost:8000/api/v1/docs
 - http://localhost:8000/api/v1/redoc
+
+
+https://github.com/oakmac/chessboardjs/tree/master
+https://github.com/jhlywa/chess.js

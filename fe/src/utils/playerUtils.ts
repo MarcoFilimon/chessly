@@ -3,7 +3,6 @@ import {
     setPlayerSortDirection,
     getPlayerSortColumn,
     getPlayerSortDirection,
-    getToken,
     setCurrentTournament,
     getCurrentTournament,
     setCurrentView
@@ -24,7 +23,7 @@ import {
 import { Modal } from './general.js'
 import { isTournament } from './tournamentUtils.js'
 import {renderApp} from '../views/home.js'
-import {Player, Matchup, Tournament} from '../types.js'
+import {type Player, type Matchup, type Tournament} from '../types.js'
 import { renderTournamentPlayers } from '../views/tournamentPlayers.js'
 import {appContent} from '../dom.js'
 
@@ -280,7 +279,7 @@ export function attachPlayerTableListeners() {
     // Generate players
     const generateBtn = document.getElementById('generatePlayersButton') as HTMLButtonElement | null;
     if (generateBtn && !generateBtn.disabled) {
-        generateBtn.addEventListener('click', async (e) => {
+        generateBtn.addEventListener('click', async () => {
             const currentTournament = getCurrentTournament();
             if (!isTournament(currentTournament)) {
                 Modal.show("Tournament not found.");
@@ -301,7 +300,7 @@ export function attachPlayerTableListeners() {
 
     const deleteAllBtn = document.getElementById('deleteAllPlayersButton') as HTMLButtonElement | null;
     if (deleteAllBtn && !deleteAllBtn.disabled) {
-        deleteAllBtn.addEventListener('click', async (e) => {
+        deleteAllBtn.addEventListener('click', async () => {
             const currentTournament = getCurrentTournament();
             if (!isTournament(currentTournament)) {
                 Modal.show("Tournament not found.");

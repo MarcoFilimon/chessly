@@ -1,5 +1,5 @@
 import { getToken} from '../state.js';
-import { Player, PlayerUpdate} from '../types.js';
+import { type Player, type PlayerUpdate} from '../types.js';
 import {fastApiBaseUrl, apiFetch} from './utilsAPI.js'
 
 

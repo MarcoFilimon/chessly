@@ -1,5 +1,5 @@
 import { getToken, getSelectedRoundIdx} from '../state.js';
-import { Tournament, MatchupResult, TournamentStatus} from '../types.js';
+import { type Tournament, type MatchupResult} from '../types.js';
 import {fastApiBaseUrl, apiFetch} from './utilsAPI.js'
 
 
@@ -111,7 +111,7 @@ export async function updateTournament(currentTournament: Tournament): Promise<v
         body: JSON.stringify(currentTournament)
     });
     if (!response.ok) {
-        currentTournament.status = TournamentStatus.Ongoing
+        currentTournament.status = "Ongoing"
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to end the tournament.');
     }

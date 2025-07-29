@@ -34,18 +34,9 @@ export interface Round {
     matchups: Matchup[];
 }
 
-export enum TournamentStatus {
-    NotStarted = "Not Started",
-    Ongoing = "Ongoing",
-    Finished = "Finished"
-}
+export type TournamentStatus = "Not Started" | "Ongoing" | "Finished";
 
-export enum TournamentTimeControl {
-    BULLET = "Bullet",
-    BLITZ = "Blitz",
-    RAPID = "Rapid",
-    CLASSICAL = "Classical"
-}
+export type TournamentTimeControl = "Bullet" | "Blitz" | "Rapid" | "Classical";
 
 export type MatchResult = "White-Wins" | "Black-Wins" | "Draw" | "";
 

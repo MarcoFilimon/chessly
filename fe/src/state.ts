@@ -1,4 +1,4 @@
-import { Tournament } from './types.js';
+import type { Tournament } from './types.js';
 
 // --- State variables (saved in local storage) ---
 let _userId: string | null = null;
