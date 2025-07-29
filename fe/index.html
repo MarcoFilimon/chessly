@@ -16,17 +16,19 @@
         integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2"
         crossorigin="anonymous"></script>
 
+
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"
         integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD"
         crossorigin="anonymous"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
 </head>
 
 <body>
     <header class="w-full bg-white shadow-md py-4 mb-8">
         <nav class="max-w-7xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center gap-3 cursor-pointer" id="logoHome">
-                <img src="assets/logo.png" alt="Chessly Logo" class="h-10 w-10 object-contain" />
+                <img src="img/logo.png" alt="Chessly Logo" class="h-10 w-10 object-contain" />
                 <span class="text-2xl font-bold text-blue-600">Chessly</span>
             </div>
             <div class="space-x-4 flex items-center">
@@ -55,7 +57,7 @@
             </button>
         </div>
     </div>
-    <script type="module" src="dist/script.js"></script>
+    <script type="module" src="dist/script.js" defer></script>
 </body>
 
 </html>
