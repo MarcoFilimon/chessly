@@ -8,7 +8,15 @@
       "name": "Debug FE (Firefox)",
       "type": "firefox",
       "request": "launch",
-      "url": "http://localhost:8000/fe/index.html", // Adjust if your frontend runs elsewhere
+      "url": "http://localhost:8000/fe/index.html",
+      "webRoot": "${workspaceFolder}/fe",
+      "reloadOnAttach": true
+    },
+    {
+      "name": "Debug FE (Vite)",
+      "type": "firefox",
+      "request": "launch",
+      "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}/fe",
       "reloadOnAttach": true
     },

@@ -21,7 +21,7 @@ import {
 } from './navigationUtils.js'
 
 
-import {TournamentStatus, Tournament, TournamentTimeControl} from '../types.js'
+import type {Tournament, TournamentTimeControl} from '../types.js'
 import {Modal, formatDate} from './general.js'
 import {renderApp} from '../views/home.js'
 import {renderViewTournaments} from '../views/tournament.js'
@@ -80,7 +80,7 @@ export function attachStartEndTournamentHandlers() {
         }
 
         try {
-            currentTournament.status = TournamentStatus.Finished
+            currentTournament.status = "Ongoing"
             await updateTournament(currentTournament);
             Modal.show("Tournament ended! See the results.");
             setCurrentView('viewTournamentResults');
