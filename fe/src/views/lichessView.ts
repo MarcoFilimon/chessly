@@ -1,6 +1,9 @@
 import { appContent } from "../dom.js";
-import { getLichessUserInfo, getOngoingGames, makeMove, listenForMoves} from '../api/lichessAPI.js'
+import { getLichessUserInfo, getOngoingGames, makeMove} from '../api/lichessAPI.js'
 import { Modal } from "../utils/general.js";
+
+const whiteSquareGrey = '#a9a9a9'
+const blackSquareGrey = '#696969'
 
 declare global {
     interface Window {
@@ -10,7 +13,17 @@ declare global {
 
 import { Chess } from 'chess.js';
 
+
+let currentPollingCleanup: (() => void) | undefined = undefined;
+export function setCurrentPollingCleanup(fn: (() => void) | undefined) {
+    currentPollingCleanup = fn;
+}
+export function getCurrentPollingCleanup() {
+    return currentPollingCleanup;
+}
+
 export async function renderLichess() {
+    if (currentPollingCleanup) currentPollingCleanup();
     appContent.innerHTML = `
         <div class="p-8 max-w-xl mx-auto bg-white rounded-lg shadow-lg flex flex-col items-center justify-center">
             <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 border-opacity-50 mb-4"></div>
@@ -68,8 +81,6 @@ async function renderOngoingGames() {
             return;
         }
         const games = result.data.nowPlaying;
-        if (games.length != 1) //! temporary..handle just one game
-            return;
         gamesListDiv.innerHTML = `
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
@@ -132,13 +143,16 @@ function updateStatus(game: any) {
     if (game.turn() === 'b')
         moveColor = 'Black'
     // checkmate?
-    if (game.isCheckmate())
-        status = 'Game over, ' + moveColor + ' is in checkmate.'
+    if (game.isCheckmate()) {
+        status = 'Game over, ' + moveColor + ' is in checkmate.';
+        Modal.show(status);
+    }
     // draw?
-    else if (game.isDraw())
-        status = 'Game over, drawn position.'
+    else if (game.isDraw()) {
+        Modal.show('Game over, drawn position.');
+    }
     else { // game still on
-        status = moveColor + ' to move.'
+        status = moveColor + ' to move'
         // check?
         if (game.inCheck())
             status += ', ' + moveColor + ' is in check.'
@@ -194,9 +208,27 @@ function startPollingForMoves(lichessGame: any, game: any, board: any) {
     return () => { polling = false; };
 }
 
+function removeGreySquares() {
+    // Remove background from all squares
+    document.querySelectorAll('.square-55d63').forEach(square => {
+        (square as HTMLElement).style.background = '';
+    });
+}
+
+function greySquare(square: string) {
+    const squareEl = document.querySelector('.square-' + square) as HTMLElement | null;
+    if (!squareEl) return;
+    let background = whiteSquareGrey;
+    if (squareEl.classList.contains('black-3c85d')) { // all black squares have black-3c85d as a class
+        background = blackSquareGrey;
+    }
+    squareEl.style.background = background;
+}
+
 function renderGameBoard(lichessGame: any) {
+    // Stop any previous polling before starting a new one
+    if (currentPollingCleanup) currentPollingCleanup();
     renderContent(lichessGame);
-    let stopPolling: (() => void) | undefined;
     try {
         const game = new Chess(lichessGame.fen || 'start');
         updateStatus(game);
@@ -205,6 +237,7 @@ function renderGameBoard(lichessGame: any) {
             orientation: lichessGame.color,
             draggable: true,
             async onDrop(source: string, target: string) {
+                removeGreySquares();
                 const move = game.move({ from: source, to: target, promotion: 'q' });
                 if (move === null) return 'snapback';
                 await makeMove(lichessGame.fullId, source, target);
@@ -229,9 +262,27 @@ function renderGameBoard(lichessGame: any) {
             onSnapEnd() {
                 updateStatus(game);
                 board.position(game.fen());
+            },
+            onMouseoverSquare(square: string, piece: string) {
+                // get list of possible moves for this square
+                const moves = game.moves({ square: square as any, verbose: true });
+
+                // exit if there are no moves available for this square
+                if (moves.length === 0) return;
+
+                // highlight the current piece's square
+                greySquare(square);
+
+                // highlight the possible squares for this piece
+                for (const move of moves) {
+                    greySquare(move.to);
+                }
+            },
+            onMouseoutSquare(square: string, piece: string) {
+                removeGreySquares();
             }
         });
-        stopPolling = startPollingForMoves(lichessGame, game, board);
+        setCurrentPollingCleanup(startPollingForMoves(lichessGame, game, board));
         console.log(`Chessboard initialized for game ${lichessGame.fullId}`);
     } catch (error) {
         console.error("Error initializing Chessboard:", error);
@@ -239,7 +290,7 @@ function renderGameBoard(lichessGame: any) {
     }
 
     document.getElementById('backToGamesBtn')?.addEventListener('click', async () => {
-        if (stopPolling) stopPolling();
+        if (currentPollingCleanup) currentPollingCleanup();
         await renderLichess();
     });
 }

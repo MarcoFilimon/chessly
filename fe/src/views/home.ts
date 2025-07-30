@@ -46,6 +46,8 @@ import type { User } from '../types.js'
 
 import { renderLichess } from './lichessView.js'
 
+import { getCurrentPollingCleanup, setCurrentPollingCleanup } from './lichessView.js';
+
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
     const usernameInput = document.getElementById('loginUsername') as HTMLInputElement;
@@ -315,6 +317,12 @@ function renderHeaderButtons(): void {
 
 // --- Main Render Function ---
 export function renderApp(): void {
+    // Always stop polling before rendering a new view
+    const cleanup = getCurrentPollingCleanup();
+    if (cleanup) {
+        cleanup();
+        setCurrentPollingCleanup(undefined);
+    }
     renderHeaderButtons();
 
     // Render main content based on currentView
