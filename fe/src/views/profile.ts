@@ -32,6 +32,10 @@ export async function renderViewUser(): Promise<void> {
                     <input id="confirmPassword" type="password" class="w-full px-3 py-2 border rounded">
                 </div>
                 <div>
+                    <label class="block text-gray-700 font-semibold mb-1" for="lichessToken">Lichess Token</label>
+                    <input id="lichessToken" type="password" class="w-full px-3 py-2 border rounded">
+                </div>
+                <div>
                     <label class="block text-gray-700 font-semibold mb-1" for="firstName">First Name</label>
                     <input id="firstName" type="text" class="w-full px-3 py-2 border rounded" value="${profile.first_name || ""}">
                 </div>
@@ -65,6 +69,7 @@ export async function renderViewUser(): Promise<void> {
         const last_name = (document.getElementById("lastName") as HTMLInputElement).value.trim();
         const password = (document.getElementById("password") as HTMLInputElement).value;
         const confirmPassword = (document.getElementById("confirmPassword") as HTMLInputElement).value;
+        const lichess_token = (document.getElementById("lichessToken") as HTMLInputElement).value;
 
         // Password validation
         if (password || confirmPassword) {
@@ -82,7 +87,8 @@ export async function renderViewUser(): Promise<void> {
         const newUserData: UserUpdate = {
             username,
             first_name,
-            last_name
+            last_name,
+            lichess_token
         };
         if (password) {
             newUserData.password = password;
@@ -91,7 +97,8 @@ export async function renderViewUser(): Promise<void> {
             newUserData.username === getUserUsername() &&
             newUserData.first_name === getFirstName() &&
             newUserData.last_name === getLastName() &&
-            !password
+            !password &&
+            !lichess_token
         ) {
             Modal.show("No changes to update.");
             return;

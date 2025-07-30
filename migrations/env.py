@@ -14,8 +14,17 @@ from src.utils.config import Config
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+import re
+def make_sync_url(async_url: str) -> str:
+    # Replace '+asyncpg' with '+psycopg2'
+    return re.sub(r'\+asyncpg', '+psycopg2', async_url)
+
+sync_database_url = make_sync_url(Config.DATABASE_URL)
+config.set_main_option('sqlalchemy.url', sync_database_url)
+
 # config.set_main_option('sqlalchemy.url', Config.DATABASE_URL)
-config.set_main_option('sqlalchemy.url', "postgresql+psycopg2://postgres:1234@localhost/postgres")
+# config.set_main_option('sqlalchemy.url', "postgresql+psycopg2://postgres:1234@localhost/postgres")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

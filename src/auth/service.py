@@ -116,6 +116,9 @@ class UserService:
             if "password" in updated_data:
                 user.hashed_pass = Hash.bcrypt(updated_data["password"])
 
+            if "lichess_token" in updated_data:
+                user.lichess_token = encrypt_lichess_token(updated_data["lichess_token"])
+
             await session.commit()
             await session.refresh(user)
             return user

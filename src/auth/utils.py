@@ -56,3 +56,14 @@ def decode_url_safe_token(token: str):
     except Exception as e:
         # raise e
         logging.error(str(e))
+
+
+from cryptography.fernet import Fernet
+fernet = Fernet(Config.LICHESS_KEY.encode())
+
+def encrypt_lichess_token(lichess_token):
+    return fernet.encrypt(lichess_token.encode()).decode()
+
+def decrypt_lichess_token(encrypted_token):
+    decrypted_token = fernet.decrypt(encrypted_token.encode()).decode()
+    return decrypted_token

@@ -35,10 +35,11 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(UserValidatorMixin):
-    username: str | None
-    password: str | None
+    username: str | None = None
+    password: str | None = None
     first_name: str | None = None
     last_name: str | None = None
+    lichess_token: str | None = None
 
 class User(UserBase):
     id: int

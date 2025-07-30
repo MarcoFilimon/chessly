@@ -4,12 +4,7 @@ from .schemas import *
 from src.utils.config import version, Config
 from .service import LichessService
 from sqlmodel.ext.asyncio.session import AsyncSession
-from src.db import db
-from datetime import datetime
-from src.db import redis
-from src.utils.errors import UserNotFound, NewPasswordsException, PasswordResetRequestTimeout
-from datetime import datetime, timedelta
-import time
+from src.auth.utils import *
 
 from src.auth.dependencies import (
     AccessTokenBearer,
@@ -18,7 +13,6 @@ from src.auth.dependencies import (
     get_current_user,
 )
 
-from src.utils.errors import InvalidToken
 
 router = APIRouter(
     prefix=f"/api/{version}/lichess",
@@ -28,14 +22,12 @@ router = APIRouter(
 service = LichessService()
 full_access = RoleChecker(['admin', 'user'])
 admin_access = RoleChecker(['admin'])
-lichess_token =  Config.LICHESS_TOKEN
-
 
 @router.post('/lichess/follow/{username}', status_code=status.HTTP_201_CREATED)
-async def follow_lichess_user(username: str):
+async def follow_lichess_user(username: str, current_user=Depends(get_current_user)):
     import httpx
     url = f"https://lichess.org/api/rel/follow/{username}"
-    # Replace with your actual Lichess API token
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
@@ -51,9 +43,10 @@ async def follow_lichess_user(username: str):
 
 
 @router.post('/lichess/inbox/{username}', status_code=status.HTTP_201_CREATED)
-async def send_dm(username: str, payload: dict):
+async def send_dm(username: str, payload: dict, current_user=Depends(get_current_user)):
     import httpx
     url = f"https://lichess.org/inbox/{username}"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
@@ -70,13 +63,13 @@ async def send_dm(username: str, payload: dict):
 
 
 @router.get('/', status_code=status.HTTP_200_OK)
-async def get_user_info():
+async def get_user_info(current_user=Depends(get_current_user)):
     import httpx
     url = "https://lichess.org/api/account"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
-    # I
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
         if response.status_code == 200:
@@ -87,9 +80,10 @@ async def get_user_info():
 
 
 @router.get('/ongoing_games', status_code=status.HTTP_200_OK)
-async def get_ongoing_games():
+async def get_ongoing_games(current_user=Depends(get_current_user)):
     import httpx
     url = "https://lichess.org/api/account/playing"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
@@ -103,12 +97,12 @@ async def get_ongoing_games():
 
 
 @router.get('/stream_moves/{gameId}', status_code=status.HTTP_200_OK)
-async def stream_moves(gameId: str):
+async def stream_moves(gameId: str, current_user=Depends(get_current_user)):
     from fastapi.responses import StreamingResponse
     import httpx
     import asyncio # For potential sleep in real scenarios
     url = f"https://lichess.org/api/stream/game/{gameId}"
-
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
         "Authorization": f"Bearer {lichess_token}",
         "Accept": "text/event-stream" # Explicitly request SSE
@@ -183,10 +177,11 @@ async def stream_moves(gameId: str):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @router.post('/make_move', status_code=status.HTTP_201_CREATED)
-async def make_move(payload: Move):
+async def make_move(payload: Move, current_user=Depends(get_current_user)):
     import httpx
     data = payload.model_dump(exclude_unset=True)
     url = f"https://lichess.org/api/board/game/{data['gameId']}/move/{data['move']}"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }

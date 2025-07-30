@@ -3,7 +3,12 @@ import { getToken } from '../state.js';
 
 
 export async function getLichessUserInfo(): Promise<any> {
-    const response = await apiFetch(`${fastApiBaseUrl}/lichess`);
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess`, {
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+        }
+    });
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to get user information from Lichess.');
@@ -13,7 +18,12 @@ export async function getLichessUserInfo(): Promise<any> {
 
 
 export async function getOngoingGames(): Promise<any> {
-    const response = await apiFetch(`${fastApiBaseUrl}/lichess/ongoing_games`);
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/ongoing_games`, {
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+        }
+    });
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to get ongoing games.');
@@ -45,7 +55,12 @@ export async function makeMove(gameId: string, source: string, target: string): 
 }
 
 export async function listenForMoves(gameId: string, onMove: (fen: string) => void) {
-    const response = await fetch(`${fastApiBaseUrl}/lichess/stream_moves/${gameId}`);
+    const response = await fetch(`${fastApiBaseUrl}/lichess/stream_moves/${gameId}`, {
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+        }
+    });
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';

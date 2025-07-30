@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRY: int
     ADMIN_SECRET: str
     REDIS_URL: str
-    LICHESS_TOKEN: str
+    LICHESS_KEY: str
 
     MAIL_USERNAME: str
     MAIL_PASSWORD: str

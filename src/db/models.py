@@ -11,6 +11,7 @@ class User(SQLModel, table=True):
     # id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, sa_column=Column(pg.UUID(as_uuid=True), unique=True, nullable=False))
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
+    # exclude=True to precent accidental serialization of token when doing model_dump().
     hashed_pass: str = Field(exclude=True)
     email: str = Field(unique=True, index=True)
     first_name: str | None = Field(default=None)
@@ -24,6 +25,7 @@ class User(SQLModel, table=True):
     tournaments: list["Tournament"] = Relationship(
         back_populates="manager", sa_relationship_kwargs={"lazy": "selectin"}, cascade_delete=True
     )
+    lichess_token: str | None = Field(default=None, exclude=True)
 
 
     def __repr__(self) -> str:
