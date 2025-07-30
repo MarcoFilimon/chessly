@@ -46,8 +46,42 @@ export async function renderLichess() {
                         ${profile.data.createdAt ? new Date(profile.data.createdAt).toLocaleDateString() : 'N/A'}
                     </div>
                     <div>
-                        <span class="font-semibold">Blitz Rating:</span>
-                        ${profile.data.perfs?.blitz?.rating ?? 'N/A'}
+                        <table class="min-w-full divide-y divide-gray-200 table-fixed">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th colspan="4" class="px-4 py-2 text-center text-sm font-bold text-gray-700 uppercase border-b">Ratings</th>
+                                </tr>
+                                <tr>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Bullet</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Blitz</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rapid</th>
+                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Classical</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-semibold text-center">${profile.data.perfs?.bullet?.rating ?? 'N/A'}</td>
+                                    <td class="font-semibold text-center">${profile.data.perfs?.blitz?.rating ?? 'N/A'}</td>
+                                    <td class="font-semibold text-center">${profile.data.perfs?.rapid?.rating ?? 'N/A'}</td>
+                                    <td class="font-semibold text-center">${profile.data.perfs?.classical?.rating ?? 'N/A'}</td>
+                                </tr>
+                                <tr class="bg-gray-100">
+                                    <th colspan="4" class="px-4 py-2 text-center text-sm font-bold text-gray-700 uppercase border-b">Stats</th>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Matches</td>
+                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Wins</td>
+                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Loses</td>
+                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Draws</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-semibold text-center">${profile.data.count?.all ?? 'N/A'}</td>
+                                    <td class="font-semibold text-center">${profile.data.count?.win ?? 'N/A'}</td>
+                                    <td class="font-semibold text-center">${profile.data.count?.loss ?? 'N/A'}</td>
+                                    <td class="font-semibold text-center">${profile.data.count?.draw ?? 'N/A'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 <div id="lichessGamesSection">
@@ -60,11 +94,6 @@ export async function renderLichess() {
     // Initial render of games
     await renderOngoingGames();
 
-    // // Clear previous interval if any
-    // if (gamesInterval) clearInterval(gamesInterval);
-
-    // // Auto-refresh ongoing games every 10 seconds
-    // gamesInterval = window.setInterval(renderOngoingGames, 10000);
     } catch (error: any) {
         Modal.show("Lichess error: " + error.message);
     }
@@ -85,11 +114,11 @@ async function renderOngoingGames() {
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
                     <tr>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Opponent</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Playing as</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Game Link</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Go Play</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Opponent</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rating</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Playing as</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Game Link</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Go Play</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -100,17 +129,17 @@ async function renderOngoingGames() {
                         const opponentProfile = `https://lichess.org/@/${opponentName}`;
                         return `
                             <tr class="bg-white border-b">
-                                <td class="px-4 py-2">
+                                <td class="font-semibold text-center">
                                     <a href="${opponentProfile}" target="_blank" class="text-blue-600 underline">
                                         ${opponentName}
                                     </a>
                                 </td>
-                                <td class="px-4 py-2">${opponentRating}</td>
-                                <td class="px-4 py-2">${lichessGame.color}</td>
-                                <td class="px-4 py-2">
+                                <td class="font-semibold text-center">${opponentRating}</td>
+                                <td class="font-semibold text-center">${lichessGame.color}</td>
+                                <td class="font-semibold text-center">
                                     <a href="https://lichess.org/${lichessGame.fullId}" target="_blank" class="text-blue-600 underline">View</a>
                                 </td>
-                                <td class="px-4 py-2">
+                                <td class="font-semibold text-center">
                                     <button type="button" class="go-play-btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded" data-game-id="${lichessGame.fullId}">
                                         Go Play
                                     </button>
@@ -164,18 +193,27 @@ function updateStatus(game: any) {
 
 function renderContent(lichessGame: any) {
     appContent.innerHTML = `
-        <div class="max-w-xl mx-auto bg-white rounded-lg shadow-lg p-6">
-            <button id="backToGamesBtn" class="mb-4 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-4 rounded">
-                ← Back to Games
-            </button>
-            <h2 class="text-2xl font-bold mb-4 text-center">Game vs
-                <a href="https://lichess.org/@/${lichessGame.opponent.username}" target="_blank" class="text-blue-600 underline">
+        <div class="max-w-xl mx-auto bg-white rounded-lg shadow-lg p-6 flex flex-col items-center gap-4">
+            <div class="w-full flex justify-between items-center mb-2">
+                <button id="backToGamesBtn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-4 rounded">
+                    ← Back to Games
+                </button>
+                <span class="text-sm text-gray-500">Game ID: <span class="font-mono">${lichessGame.fullId}</span></span>
+            </div>
+            <h2 class="text-2xl font-bold text-center mb-2">
+                Game vs
+                <a href="https://lichess.org/@/${lichessGame.opponent.username}" target="_blank" class="text-blue-600 underline ml-1">
                     ${lichessGame.opponent.username}
                 </a>
             </h2>
-            <div id="board-${lichessGame.fullId}" style="width: 400px"></div>
-            <!-- <span class="ml-4"><a href="https://lichess.org/${lichessGame.fullId}" target="_blank" class="text-blue-600 underline">${lichessGame.fullId}</a></span> -->
-            <div id="game-status"></div>
+            <div class="flex flex-col items-center gap-2 w-full">
+                <div id="board-${lichessGame.fullId}" class="mx-auto" style="width: 400px"></div>
+                <div id="game-status" class="text-lg text-center text-gray-700 font-semibold min-h-[2rem]"></div>
+            </div>
+            <div class="w-full flex justify-between mt-2 text-sm text-gray-600">
+                <span>Playing as: <span class="font-bold capitalize">${lichessGame.color}</span></span>
+                <a href="https://lichess.org/${lichessGame.fullId}" target="_blank" class="text-blue-600 underline">Open on Lichess</a>
+            </div>
         </div>
     `;
 }

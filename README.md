@@ -1,26 +1,45 @@
-# Chess bracket maker
 
-Technologies:
-- FastAPI
-- PostgreSQL
-- Redis (to revoke access tokens when logged out (add them to a blocklist) + check if token in blocklist when accessing protected endpoints) + for Celery tasks
-- SQLModel
-- JWT
-- Middleware
-- Background tasks with Celery & Redis
+# Chessly
 
+Chessly it's a chess utiliy web app, integrated it with LichessAPI. The user can create and track their own tournaments and also play chess games.
 
-To run:
-- fastapi dev src/main.py OR uvicorn src.main:app --reload
-- runworker.bat
+## Tech Stack
 
-Docker:
+**Client:** Typescript, Tailwind CSS
 
+**Server:** Python, FastAPI, PostgreSQL, Redis, SQLModel, Celery
 
-Docs:
-- http://localhost:8000/api/v1/docs
-- http://localhost:8000/api/v1/redoc
+## Documentation
 
+- [Swagger](http://localhost:8000/api/v1/docs)
+- [Redocly](http://localhost:8000/api/v1/redoc)
 
-https://github.com/oakmac/chessboardjs/tree/master
-https://github.com/jhlywa/chess.js
+## Screenshots
+
+![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
+
+## Run Locally
+
+Clone the project
+
+```bash
+  git clone https://github.com/MarcoFilimon/chessly.git
+```
+
+Go to the project directory
+
+```bash
+  cd chessly
+```
+
+Install dependencies
+
+```bash
+  npm install
+```
+
+Start the server
+
+```bash
+  npm run start
+```
