@@ -28,6 +28,7 @@ router = APIRouter(
 service = LichessService()
 full_access = RoleChecker(['admin', 'user'])
 admin_access = RoleChecker(['admin'])
+lichess_token =  Config.LICHESS_TOKEN
 
 
 @router.post('/lichess/follow/{username}', status_code=status.HTTP_201_CREATED)
@@ -35,7 +36,6 @@ async def follow_lichess_user(username: str):
     import httpx
     url = f"https://lichess.org/api/rel/follow/{username}"
     # Replace with your actual Lichess API token
-    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
@@ -54,7 +54,6 @@ async def follow_lichess_user(username: str):
 async def send_dm(username: str, payload: dict):
     import httpx
     url = f"https://lichess.org/inbox/{username}"
-    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
@@ -74,7 +73,6 @@ async def send_dm(username: str, payload: dict):
 async def get_user_info():
     import httpx
     url = "https://lichess.org/api/account"
-    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
@@ -92,7 +90,6 @@ async def get_user_info():
 async def get_ongoing_games():
     import httpx
     url = "https://lichess.org/api/account/playing"
-    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
@@ -110,7 +107,6 @@ async def stream_moves(gameId: str):
     from fastapi.responses import StreamingResponse
     import httpx
     import asyncio # For potential sleep in real scenarios
-    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
     url = f"https://lichess.org/api/stream/game/{gameId}"
 
     headers = {
@@ -191,7 +187,6 @@ async def make_move(payload: Move):
     import httpx
     data = payload.model_dump(exclude_unset=True)
     url = f"https://lichess.org/api/board/game/{data['gameId']}/move/{data['move']}"
-    lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
