@@ -68,6 +68,8 @@ async function renderOngoingGames() {
             return;
         }
         const games = result.data.nowPlaying;
+        if (games.length != 1) //! temporary..handle just one game
+            return;
         gamesListDiv.innerHTML = `
             <table class="min-w-full divide-y divide-gray-200">
                 <thead>
@@ -164,8 +166,37 @@ function renderContent(lichessGame: any) {
     `;
 }
 
+function startPollingForMoves(lichessGame: any, game: any, board: any) {
+    let lastMove = lichessGame.lastMove;
+    let polling = true;
+
+    async function poll() {
+        if (!polling) return;
+        try {
+            const result = await getOngoingGames();
+            const updatedGame = result.data.nowPlaying.find((g: any) => g.fullId === lichessGame.fullId);
+            if (updatedGame && updatedGame.lastMove !== lastMove) {
+                lastMove = updatedGame.lastMove;
+                // Update the chess.js game and board
+                game.load(updatedGame.fen || 'start');
+                board.position(game.fen());
+                updateStatus(game);
+            }
+        } catch (e) {
+            console.warn("Polling error:", e);
+        }
+        if (polling) setTimeout(poll, 1000);
+    }
+
+    poll();
+
+    // Return a cleanup function to stop polling
+    return () => { polling = false; };
+}
+
 function renderGameBoard(lichessGame: any) {
     renderContent(lichessGame);
+    let stopPolling: (() => void) | undefined;
     try {
         const game = new Chess(lichessGame.fen || 'start');
         updateStatus(game);
@@ -181,9 +212,10 @@ function renderGameBoard(lichessGame: any) {
                 board.position(game.fen()); // Update board after valid move
             },
             onDragStart(source: string, piece: string, position: string, orientation: string) {
+                console.log(source, piece, position, orientation)
                 if (game.isGameOver()) return false;
-                // only pick the pieces of the side to move
-                const turnColor = game.turn();
+                // only pick up your pieces.
+                const turnColor = lichessGame.color.charAt(0); // 'w' or 'b'
                 const pieceColor = piece.charAt(0); // 'w' or 'b'
                 if ((turnColor === 'w' && pieceColor === 'b') ||
                     (turnColor === 'b' && pieceColor === 'w')) {
@@ -199,11 +231,7 @@ function renderGameBoard(lichessGame: any) {
                 board.position(game.fen());
             }
         });
-        listenForMoves(lichessGame.fullId, (fen: string) => {
-            game.load(fen); // update chess.js state
-            board.position(fen); // update the board
-            updateStatus(game);
-        });
+        stopPolling = startPollingForMoves(lichessGame, game, board);
         console.log(`Chessboard initialized for game ${lichessGame.fullId}`);
     } catch (error) {
         console.error("Error initializing Chessboard:", error);
@@ -211,6 +239,7 @@ function renderGameBoard(lichessGame: any) {
     }
 
     document.getElementById('backToGamesBtn')?.addEventListener('click', async () => {
+        if (stopPolling) stopPolling();
         await renderLichess();
     });
 }

@@ -107,36 +107,84 @@ async def get_ongoing_games():
 
 @router.get('/stream_moves/{gameId}', status_code=status.HTTP_200_OK)
 async def stream_moves(gameId: str):
+    from fastapi.responses import StreamingResponse
     import httpx
-    url = f"https://lichess.org/api/stream/game/{gameId}"
+    import asyncio # For potential sleep in real scenarios
     lichess_token = "lip_XFJ3gGeNWTZmxpb3R8CG"
+    url = f"https://lichess.org/api/stream/game/{gameId}"
+
     headers = {
-        "Authorization": f"Bearer {lichess_token}"
+        "Authorization": f"Bearer {lichess_token}",
+        "Accept": "text/event-stream" # Explicitly request SSE
     }
-    timeout_seconds = 15.0
-    try:
-        async with httpx.AsyncClient(timeout=timeout_seconds) as client:
-            response = await client.get(url, headers=headers)
-            if response.status_code == 200:
-                data = response.text
-                return {"data": response.text}
-            else:
-                return {"error:" f"Failed to fetch data: {response.status_code}"}
-    except httpx.TimeoutException:
-        return {
-            "error": f"Timeout was reached while trying to make move {data['move']}. Lichess server might be slow or unreachable.",
-            "details": f"Attempted to connect to {url} with a timeout of {timeout_seconds} seconds."
-        }
-    except httpx.RequestError as exc:
-        return {
-            "error": f"An HTTP error occurred while requesting {exc.request.url!r}.",
-            "details": str(exc)
-        }
-    except Exception as e:
-        return {
-            "error": f"An unexpected error occurred: {type(e).__name__}",
-            "details": str(e)
-        }
+
+    # Set a longer timeout for the initial connection, or a None for infinite read timeout
+    # You might want a connect timeout but no read timeout for streams.
+    # httpx.Timeout(connect=10.0, read=None, write=10.0, pool=None)
+    # For a streaming response, the `read` timeout needs to be handled carefully.
+    # Often, you let the client decide when to close, or the server for inactivity.
+    timeout_config = httpx.Timeout(120.0, connect=10.0, read=None)
+
+    async def event_generator():
+        try:
+            async with httpx.AsyncClient(timeout=timeout_config) as client:
+                async with client.stream("GET", url, headers=headers, follow_redirects=True) as response:
+                    # Check the initial response status
+                    if response.status_code != 200:
+                        yield f"data: {{\"error\": \"Failed to connect to Lichess stream: {response.status_code}\", \"details\": \"{await response.text()}\"}}\n\n"
+                        return
+
+                    # Iterate over the stream as chunks arrive
+                    async for chunk in response.aiter_bytes():
+                        # Lichess sends JSON objects, one per line, potentially preceded by 'event: '
+                        # You'll need to parse this for each event.
+                        # For a simple pass-through, just yield the chunk.
+                        # For more robust parsing, you'd buffer and split by newlines.
+
+                        # Example of simple processing (assuming each chunk is a full event line)
+                        # In reality, chunks might split event lines, so a buffer is better.
+                        chunk_str = chunk.decode('utf-8')
+
+                        # Lichess events are typically newline-separated JSON objects
+                        # The `data:` prefix is for SSE, so we prepend it.
+                        # It's better to process complete lines if possible.
+
+                        # A more robust parser would buffer lines and then yield.
+                        # For demonstration, let's assume chunks roughly align with events or we process lines.
+                        # Lichess typically sends one JSON object per line, followed by a newline.
+                        # `data:` prefix is required for SSE.
+
+                        # Lichess stream sends each event as a JSON string followed by `\n` or `\r\n`.
+                        # We need to prepend `data: ` and append `\n\n` for standard SSE format.
+                        # For simplicity, let's yield each chunk as an SSE event.
+                        # This might send partial JSON if chunk splits an event, so a proper parser is recommended for production.
+
+                        # A better way is to buffer and yield complete lines:
+                        # (This requires managing a buffer across chunks, which is more complex for a simple example)
+
+                        # For now, let's yield the raw text and rely on the client to parse JSON from it
+                        # For a proper SSE stream, each event must be `data: {json_payload}\n\n`
+
+                        # Let's refine the yield to adhere to SSE spec
+                        for line in chunk_str.splitlines():
+                            if line.strip(): # Only process non-empty lines
+                                # Lichess sends raw JSON, so we need to wrap it for SSE
+                                # Example: {"type": "gameFull", ...}
+                                # We need to send: data: {"type": "gameFull", ...}\n\n
+                                yield f"data: {line}\n\n"
+                        await asyncio.sleep(0.01) # Small sleep to yield control
+        except httpx.TimeoutException:
+            # Handle timeout specifically for the stream connection
+            yield f"data: {{\"error\": \"Lichess stream connection timed out.\"}}\n\n"
+        except httpx.RequestError as exc:
+            yield f"data: {{\"error\": \"HTTP request error for Lichess stream: {str(exc)}\"}}\n\n"
+        except Exception as e:
+            yield f"data: {{\"error\": \"An unexpected error occurred in stream: {type(e).__name__}\", \"details\": \"{str(e)}\"}}\n\n"
+        finally:
+            print("Lichess stream connection closed.") # Log when the stream ends
+
+    # Return a StreamingResponse from FastAPI
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @router.post('/make_move', status_code=status.HTTP_201_CREATED)
 async def make_move(payload: Move):

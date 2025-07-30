@@ -45,7 +45,7 @@ export async function makeMove(gameId: string, source: string, target: string): 
 }
 
 export async function listenForMoves(gameId: string, onMove: (fen: string) => void) {
-    const response = await fetch(`/api/lichess/stream_moves/${gameId}`);
+    const response = await fetch(`${fastApiBaseUrl}/lichess/stream_moves/${gameId}`);
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -58,10 +58,11 @@ export async function listenForMoves(gameId: string, onMove: (fen: string) => vo
         buffer = lines.pop()!; // last line may be incomplete
         for (const line of lines) {
             if (!line.trim()) continue;
-            const event = JSON.parse(line);
+            if (!line.startsWith('data:')) continue;
+            const jsonStr = line.slice(5).trim();
+            if (!jsonStr) continue;
+            const event = JSON.parse(jsonStr);
             if (event.type === 'gameFull' || event.type === 'gameState') {
-                // event.state.moves is a space-separated list of SAN moves
-                // event.state.fen is the current FEN
                 onMove(event.state.fen);
             }
         }
