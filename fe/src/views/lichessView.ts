@@ -301,7 +301,7 @@ function renderGameBoard(lichessGame: any) {
                 updateStatus(game);
                 board.position(game.fen());
             },
-            onMouseoverSquare(square: string, piece: string) {
+            onMouseoverSquare(square: string) {
                 // get list of possible moves for this square
                 const moves = game.moves({ square: square as any, verbose: true });
 
@@ -316,7 +316,7 @@ function renderGameBoard(lichessGame: any) {
                     greySquare(move.to);
                 }
             },
-            onMouseoutSquare(square: string, piece: string) {
+            onMouseoutSquare() {
                 removeGreySquares();
             }
         });
