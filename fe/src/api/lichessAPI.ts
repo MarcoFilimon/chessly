@@ -3,7 +3,7 @@ import { getToken } from '../state.js';
 
 
 export async function getLichessUserInfo(): Promise<any> {
-    const response = await apiFetch(`${fastApiBaseUrl}/lichess`, {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/`, {
         headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getToken()}`
@@ -81,5 +81,25 @@ export async function listenForMoves(gameId: string, onMove: (fen: string) => vo
                 onMove(event.state.fen);
             }
         }
+    }
+}
+
+export async function sendChallenge(username: string): Promise<void> {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/create_challenge/${username}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to create the challenge.');
     }
 }

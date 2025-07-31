@@ -1,5 +1,5 @@
 import { appContent } from "../dom.js";
-import { getLichessUserInfo, getOngoingGames, makeMove} from '../api/lichessAPI.js'
+import { getLichessUserInfo, getOngoingGames, makeMove, sendChallenge} from '../api/lichessAPI.js'
 import { Modal } from "../utils/general.js";
 
 import { setCurrentView } from '../state.js';
@@ -88,6 +88,20 @@ export async function renderLichess() {
                         </table>
                     </div>
                 </div>
+
+                <h2 class="text-2xl font-bold mb-2 text-center">Challenge another player</h2>
+                <form id="challengePlayer" class="space-y-3 mb-8">
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-1" for="challengePlayerInput">Name</label>
+                        <input id="challengePlayerInput" type="text" class="w-full px-3 py-2 border rounded" placeholder="Enter username" required>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+                            Challenge
+                        </button>
+                    </div>
+                </form>
+
                 <div id="lichessGamesSection">
                     <h3 class="text-xl font-bold mb-2">Ongoing Games</h3>
                     <div id="lichessGamesList" class="space-y-2"></div>
@@ -97,6 +111,17 @@ export async function renderLichess() {
 
     // Initial render of games
     await renderOngoingGames();
+
+    document.getElementById("challengePlayer")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const username = (document.getElementById("challengePlayerInput") as HTMLInputElement).value.trim();
+        try {
+            await sendChallenge(username);
+            Modal.show("Challenge sent succesfully!");
+        } catch (error: any) {
+            Modal.show("Failed to send challenge: " + error.message);
+        }
+    });
 
     } catch (error: any) {
         Modal.show("Lichess error: " + error.message);
