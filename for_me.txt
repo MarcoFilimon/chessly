@@ -13,6 +13,12 @@ To run:
 - runworker.bat
 
 Docker:
+ TO BUILD : docker build -t chessly-backend .
+ TO RUN: docker run -d -p 8000:8000 -v "${PWD}:/app" --env-file .env chessly-backend
+
+  Compose (dev):
+     - docker-compose up --build
+     - docker-compose logs -f backend
 
 Docs:
 - http://localhost:8000/api/v1/docs
