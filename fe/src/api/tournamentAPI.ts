@@ -26,7 +26,7 @@ export async function createTournament(payload: Partial<Tournament>): Promise<To
 }
 
 export async function fetchTournaments(): Promise<Tournament[]> {
-    const response = await apiFetch(`${fastApiBaseUrl}/tournament`, {
+    const response = await apiFetch(`${fastApiBaseUrl}/tournament/`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -111,7 +111,6 @@ export async function updateTournament(currentTournament: Tournament): Promise<v
         body: JSON.stringify(currentTournament)
     });
     if (!response.ok) {
-        currentTournament.status = "Ongoing"
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to end the tournament.');
     }

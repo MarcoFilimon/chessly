@@ -5,6 +5,8 @@ from src.utils.config import version
 from .service import PlayerService
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db import db
+from src.db.models import User
+from src.db.redis import *
 
 from src.auth.dependencies import (
     RoleChecker,
@@ -26,11 +28,13 @@ async def create_player(
     tournament_id: int,
     payload: PlayerCreate,
     _ : bool = Depends(full_access),
-    session: AsyncSession = Depends(db.get_session)
+    session: AsyncSession = Depends(db.get_session),
+    user: User = Depends(get_current_user)
 ) -> dict:
     '''
     Create new player.
     '''
+    await invalidate_user_tournaments_cache(user.id)
     player = await service.create_player(tournament_id, payload, session)
     return player
 
@@ -40,11 +44,13 @@ async def update_player(
   id: int,
   payload: PlayerUpdate,
   _: bool = Depends(full_access),
-  session: AsyncSession = Depends(db.get_session)
+  session: AsyncSession = Depends(db.get_session),
+  user: User = Depends(get_current_user)
 ) -> dict:
     '''
     Update a player.
     '''
+    await invalidate_user_tournaments_cache(user.id)
     player = await service.update_player(id, payload, session)
     return player
 
@@ -64,20 +70,24 @@ async def get_players(
 @router.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_player(
     id: int,
-    session: AsyncSession = Depends(db.get_session)
+    session: AsyncSession = Depends(db.get_session),
+    user: User = Depends(get_current_user)
 ):
     """
     Delete player be ID.
     """
+    await invalidate_user_tournaments_cache(user.id)
     await service.delete_player(id, session)
 
 
 @router.delete('/tournament/{tournament_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_all_players(
     tournament_id: int,
-    session: AsyncSession = Depends(db.get_session)
+    session: AsyncSession = Depends(db.get_session),
+    user: User = Depends(get_current_user)
 ):
     '''
     Delete all players in a tournament.
     '''
+    await invalidate_user_tournaments_cache(user.id)
     await service.delete_players(tournament_id, session)

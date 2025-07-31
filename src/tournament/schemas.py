@@ -10,6 +10,7 @@ class PlayerRead(BaseModel):
 
 class MatchupRead(BaseModel):
     id: int
+    round_id: int
     white_player: PlayerRead
     black_player: PlayerRead
     result: str | None = None
@@ -17,6 +18,7 @@ class MatchupRead(BaseModel):
 class RoundRead(BaseModel):
     id: int
     round_number: int
+    tournament_id: int
     matchups: list[MatchupRead] | None = None
 
 

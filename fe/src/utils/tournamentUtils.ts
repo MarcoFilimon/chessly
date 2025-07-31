@@ -80,12 +80,13 @@ export function attachStartEndTournamentHandlers() {
         }
 
         try {
-            currentTournament.status = "Ongoing"
+            currentTournament.status = "Finished"
             await updateTournament(currentTournament);
             Modal.show("Tournament ended! See the results.");
             setCurrentView('viewTournamentResults');
             renderApp();
         } catch (error: any) {
+            currentTournament.status = "Ongoing"
             Modal.show(`Failed to end the tournament: ${error.message}`);
         }
     });
@@ -359,7 +360,7 @@ export function getTournamentFormValues() {
 export function renderTournamentsTabContent() {
     // Track which tab is active
     let tournamentTab = (window as any).tournamentTab || 'Not Started';
-    let tournamentsHtml = '';
+    let pageContent = '';
 
     const normalizeStatus = (status: string) => status.replace(/[\s_]/g, '').toLowerCase();
 
@@ -372,7 +373,7 @@ export function renderTournamentsTabContent() {
     });
 
     if (filtered.length === 0 && tournamentTab === "Not Started") {
-        tournamentsHtml = `
+        pageContent = `
             <div class="flex flex-col items-center justify-center gap-4">
                 <p class="text-center text-gray-600">No tournaments in this category.</p>
                 <button id="createTournamentBtnHome" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
@@ -381,13 +382,13 @@ export function renderTournamentsTabContent() {
             </div>
         `;
     } else if (filtered.length === 0 && tournamentTab !== "Not Started") {
-        tournamentsHtml = `
+        pageContent = `
             <div class="flex flex-col items-center justify-center gap-4">
                 <p class="text-center text-gray-600">No tournaments in this category.</p>
             </div>
         `;
     } else {
-        tournamentsHtml = `
+        pageContent = `
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 ${filtered.map(tournament => `
                     <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 cursor-pointer tournament-card"
@@ -425,7 +426,7 @@ export function renderTournamentsTabContent() {
     const finishedCount = tournaments.filter(t => normalizeStatus(t.status) === "finished").length;
 
     // Tabs HTML
-    tournamentsHtml = `
+    const tournamentsHtml = `
         <div class="flex gap-2 mb-6">
             <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">
                 Not Started (${notStartedCount})
@@ -437,7 +438,7 @@ export function renderTournamentsTabContent() {
                 Finished (${finishedCount})
             </button>
         </div>
-        ${tournamentsHtml}
+        ${pageContent}
     `;
     return tournamentsHtml;
 }

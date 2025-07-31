@@ -19,6 +19,34 @@ from src.player.schemas import PlayerCreate
 from src.player.service import PlayerService
 player_service = PlayerService()
 
+
+def get_full_tournament_data(t: Tournament):
+    data = t.model_dump(mode="json")
+    # Players
+    data["players"] = [p.model_dump(mode="json") for p in getattr(t, "players", [])]
+    # Build a lookup for players by ID
+    player_lookup = {p.id: p for p in getattr(t, "players", [])}
+    # Rounds with nested matchups and full player info
+    data["rounds"] = []
+    for r in getattr(t, "rounds", []):
+        round_data = r.model_dump(mode="json")
+        round_data["matchups"] = []
+        for m in getattr(r, "matchups", []):
+            matchup_data = m.model_dump(mode="json")
+            # Replace player IDs with full player dicts
+            white_player_obj = getattr(m, "white_player", None)
+            black_player_obj = getattr(m, "black_player", None)
+            # If these are IDs, look them up
+            if isinstance(white_player_obj, int):
+                white_player_obj = player_lookup.get(white_player_obj)
+            if isinstance(black_player_obj, int):
+                black_player_obj = player_lookup.get(black_player_obj)
+            matchup_data["white_player"] = white_player_obj.model_dump(mode="json") if white_player_obj else None
+            matchup_data["black_player"] = black_player_obj.model_dump(mode="json") if black_player_obj else None
+            round_data["matchups"].append(matchup_data)
+        data["rounds"].append(round_data)
+    return data
+
 def berger_table_pairings(player_ids, double_round_robin=False):
     n_players = len(player_ids)
     rounds = []
