@@ -2,6 +2,10 @@ import { appContent } from "../dom.js";
 import { getLichessUserInfo, getOngoingGames, makeMove} from '../api/lichessAPI.js'
 import { Modal } from "../utils/general.js";
 
+import { setCurrentView } from '../state.js';
+import { renderApp } from '../views/home.js';
+
+
 const whiteSquareGrey = '#a9a9a9'
 const blackSquareGrey = '#696969'
 
@@ -96,6 +100,8 @@ export async function renderLichess() {
 
     } catch (error: any) {
         Modal.show("Lichess error: " + error.message);
+        setCurrentView('viewUser');
+        renderApp();
     }
 }
 

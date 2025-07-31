@@ -21,7 +21,7 @@ export async function renderViewUser(): Promise<void> {
             <form id="profileForm" class="space-y-4">
                 <div>
                     <label class="block text-gray-700 font-semibold mb-1" for="username">Username</label>
-                    <input id="username" type="text" class="w-full px-3 py-2 border rounded" value="${profile.username || ""}">
+                    <input id="username" type="text" class="w-full px-3 py-2 border rounded" value="${profile.username || ""}" required>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-1" for="password">Password</label>

@@ -83,6 +83,7 @@ async function handleSignup(e: Event): Promise<void> {
     const usernameInput = document.getElementById('signupUsername') as HTMLInputElement;
     const emailInput = document.getElementById('signupEmail') as HTMLInputElement;
     const passwordInput = document.getElementById('signupPassword') as HTMLInputElement;
+    const confirmPasswordInput = document.getElementById('confirmSignupPassword') as HTMLInputElement;
     const firstNameInput = document.getElementById('signupFirstName') as HTMLInputElement;
     const lastNameInput = document.getElementById('signupLastName') as HTMLInputElement;
 
@@ -90,6 +91,7 @@ async function handleSignup(e: Event): Promise<void> {
         username: usernameInput.value,
         email: emailInput.value,
         password: passwordInput.value,
+        confirmPassword: confirmPasswordInput.value
     };
 
     if (firstNameInput.value.trim()) {
@@ -97,6 +99,17 @@ async function handleSignup(e: Event): Promise<void> {
     }
     if (lastNameInput.value.trim()) {
         payload.last_name = lastNameInput.value.trim();
+    }
+    // Password validation
+    if (payload.password || payload.confirmPassword) {
+        if (payload.password !== payload.confirmPassword) {
+            Modal.show("Passwords don't match.");
+            return;
+        }
+        if (!payload.password || payload.password.length < 3) {
+            Modal.show("Password must be at least 3 characters.");
+            return;
+        }
     }
     try {
         await register(payload);
@@ -232,6 +245,16 @@ function renderSignup(): void {
                     <input
                         type="password"
                         id="signupPassword"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="********"
+                        required
+                    >
+                </div>
+                <div>
+                    <label for="confirmSignupPassword" class="block text-gray-700 text-sm font-semibold mb-2">Confirm Password</label>
+                    <input
+                        type="password"
+                        id="confirmSignupPassword"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="********"
                         required

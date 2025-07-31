@@ -16,6 +16,11 @@ class InvalidToken(Chessly):
 
     pass
 
+class InvalidLichessToken(Chessly):
+    """Lichess toekn is missing or could not be decrypted."""
+
+    pass
+
 
 class RevokedToken(Chessly):
     """User has provided a token that has been revoked"""
@@ -196,6 +201,17 @@ def register_all_errors(app: FastAPI):
                 "message": "Token is invalid or expired.",
                 "resolution": "Please get new token.",
                 "error_code": "invalid_token",
+            },
+        ),
+    )
+    app.add_exception_handler(
+        InvalidLichessToken,
+        create_exception_handler(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            initial_detail={
+                "message": "Lichess toekn is missing or could not be decrypted. Please input a valid token.",
+                "resolution": "Please provide a valid token from lichess.",
+                "error_code": "invalid_lichess_token",
             },
         ),
     )

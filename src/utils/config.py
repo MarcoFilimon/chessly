@@ -27,8 +27,6 @@ app_config = {
     "openapi_tags": tags_metadata
 }
 
-#! url for local postgresql db with pgadmin4
-# DATABASE_URL=postgresql+asyncpg://postgres:1234@localhost/postgres
 
 # Takes the db url from .env file
 class Settings(BaseSettings):

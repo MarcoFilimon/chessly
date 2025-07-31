@@ -6,6 +6,10 @@ import logging
 import uuid
 from itsdangerous import URLSafeTimedSerializer
 import tzlocal
+from cryptography.fernet import Fernet, InvalidToken
+
+
+from src.utils.errors import *
 
 pwd_cxt = CryptContext(schemes=["bcrypt"])
 
@@ -58,12 +62,26 @@ def decode_url_safe_token(token: str):
         logging.error(str(e))
 
 
-from cryptography.fernet import Fernet
+
 fernet = Fernet(Config.LICHESS_KEY.encode())
 
-def encrypt_lichess_token(lichess_token):
-    return fernet.encrypt(lichess_token.encode()).decode()
+def encrypt_lichess_token(lichess_token: str) -> str:
+    if not lichess_token:
+        raise ValueError("No Lichess token provided for encryption.")
+    encrypted = fernet.encrypt(lichess_token.encode())
+    return encrypted.decode()
 
-def decrypt_lichess_token(encrypted_token):
-    decrypted_token = fernet.decrypt(encrypted_token.encode()).decode()
-    return decrypted_token
+def decrypt_lichess_token(encrypted_token: str) -> str:
+    if not encrypted_token:
+        raise ValueError("No encrypted token provided for decryption.")
+    try:
+        decrypted = fernet.decrypt(encrypted_token.encode())
+        if not decrypted:
+            raise InvalidLichessToken()
+        return decrypted.decode()
+    except InvalidToken:
+        # Custom error or logging can go here
+        raise InvalidLichessToken("Failed to decrypt Lichess token: Invalid or corrupted token.")
+    except Exception as e:
+        print("Fernet decryption error:", e)
+        raise
