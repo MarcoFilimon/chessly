@@ -4,11 +4,15 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 import alembic_postgresql_enum
+import re
 from alembic import context
 # https://www.youtube.com/watch?v=jPTJ0i1JM3I&list=PLEt8Tae2spYnHy378vMlPH--87cfeh33P&index=7
 from src.db.models import *
 from sqlmodel import SQLModel
 from src.utils.config import Config
+
+def make_sync_url(async_url: str) -> str:
+    return re.sub(r'\+asyncpg', '+psycopg2', async_url)
 
 
 # this is the Alembic Config object, which provides
@@ -16,16 +20,13 @@ from src.utils.config import Config
 config = context.config
 
 #! ----- NEON DB
-# import re
-# def make_sync_url(async_url: str) -> str:
-#     return re.sub(r'\+asyncpg', '+psycopg2', async_url)
-
 # sync_database_url = make_sync_url(Config.DATABASE_URL)
 # config.set_main_option('sqlalchemy.url', sync_database_url)
-#! ------ END OF NEON DB SETUP
+
 
 #! ------ LOCAL DB
-config.set_main_option('sqlalchemy.url', "postgresql+psycopg2://postgres:1234@localhost/postgres")
+sync_database_url = make_sync_url(Config.DATABASE_URL)
+config.set_main_option('sqlalchemy.url', sync_database_url)
 
 
 # Interpret the config file for Python logging.

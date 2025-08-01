@@ -6,9 +6,11 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 import time
 import logging
 
-logger = logging.getLogger("uvicorn.access")
-logger.disabled = True
+# logger = logging.getLogger("uvicorn.access")
+# logger.disabled = True
 # logging.basicConfig(level=logging.INFO)
+
+# logger = logging.getLogger(__name__)
 
 
 # https://fastapi.tiangolo.com/tutorial/middleware/?h=middle#create-a-middleware
@@ -24,7 +26,7 @@ def register_middleware(app: FastAPI):
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         message = f"{request.client.host}:{request.client.port} - {request.method} - {current_time} - {request.url.path} - {response.status_code} completed after {processing_time}s"
         print(message)
-        # logging.info(message)
+        # logger.info(message)
         return response
 
     app.add_middleware(

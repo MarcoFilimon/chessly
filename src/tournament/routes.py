@@ -1,5 +1,4 @@
 from fastapi import status, APIRouter, Depends
-from fastapi.responses import JSONResponse
 from .schemas import *
 from src.utils.config import version
 from .service import TournamentService, get_full_tournament_data

@@ -3,8 +3,8 @@ from fastapi.responses import JSONResponse
 from .schemas import *
 from src.utils.config import version
 from .service import LichessService
-from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.utils import *
+import httpx
 
 from src.auth.dependencies import (
     RoleChecker,
@@ -23,7 +23,6 @@ admin_access = RoleChecker(['admin'])
 
 @router.post('/lichess/follow/{username}', status_code=status.HTTP_201_CREATED)
 async def follow_lichess_user(username: str, current_user=Depends(get_current_user)):
-    import httpx
     url = f"https://lichess.org/api/rel/follow/{username}"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
@@ -42,7 +41,6 @@ async def follow_lichess_user(username: str, current_user=Depends(get_current_us
 
 @router.post('/lichess/inbox/{username}', status_code=status.HTTP_201_CREATED)
 async def send_dm(username: str, payload: dict, current_user=Depends(get_current_user)):
-    import httpx
     url = f"https://lichess.org/inbox/{username}"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
@@ -62,7 +60,6 @@ async def send_dm(username: str, payload: dict, current_user=Depends(get_current
 
 @router.get('/', status_code=status.HTTP_200_OK)
 async def get_user_info(current_user=Depends(get_current_user)):
-    import httpx
     url = "https://lichess.org/api/account"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
@@ -79,7 +76,6 @@ async def get_user_info(current_user=Depends(get_current_user)):
 
 @router.get('/ongoing_games', status_code=status.HTTP_200_OK)
 async def get_ongoing_games(current_user=Depends(get_current_user)):
-    import httpx
     url = "https://lichess.org/api/account/playing"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
@@ -96,7 +92,6 @@ async def get_ongoing_games(current_user=Depends(get_current_user)):
 @router.get('/stream_moves/{gameId}', status_code=status.HTTP_200_OK)
 async def stream_moves(gameId: str, current_user=Depends(get_current_user)):
     from fastapi.responses import StreamingResponse
-    import httpx
     import asyncio # For potential sleep in real scenarios
     url = f"https://lichess.org/api/stream/game/{gameId}"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
@@ -176,7 +171,6 @@ async def stream_moves(gameId: str, current_user=Depends(get_current_user)):
 
 @router.post('/make_move', status_code=status.HTTP_201_CREATED)
 async def make_move(payload: Move, current_user=Depends(get_current_user)):
-    import httpx
     data = payload.model_dump(exclude_unset=True)
     url = f"https://lichess.org/api/board/game/{data['gameId']}/move/{data['move']}"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
@@ -196,29 +190,8 @@ async def make_move(payload: Move, current_user=Depends(get_current_user)):
             }
 
 
-@router.post('/create_challenge/{username}', status_code=status.HTTP_201_CREATED)
-async def create_challenge(username: str, current_user=Depends(get_current_user)):
-    import httpx
-    url = f"https://lichess.org/api/challenge/{username}"
-    lichess_token = decrypt_lichess_token(current_user.lichess_token)
-    headers = {
-        "Authorization": f"Bearer {lichess_token}"
-    }
-    params = {}
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, params=params)
-        if response.status_code == 200:
-            return {"message": "Success"}
-        else:
-            return {
-                "error": f"Failed to send challenge: {response.status_code}",
-                "details": response.text
-            }
-
-
 @router.post('/resign/{gameId}', status_code=status.HTTP_201_CREATED)
 async def resign(gameId: str, current_user=Depends(get_current_user)):
-    import httpx
     url = f"https://lichess.org/api/board/game/{gameId}/resign"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
     headers = {
@@ -238,7 +211,6 @@ async def resign(gameId: str, current_user=Depends(get_current_user)):
 
 @router.post('/draw/{gameId}', status_code=status.HTTP_201_CREATED)
 async def draw(gameId: str, current_user=Depends(get_current_user)):
-    import httpx
     # https://lichess.org/api#tag/Board/operation/boardGameDraw
     url = f"https://lichess.org/api/board/game/{gameId}/draw/yes"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
@@ -257,9 +229,27 @@ async def draw(gameId: str, current_user=Depends(get_current_user)):
             }
 
 
+@router.post('/create_challenge/{username}', status_code=status.HTTP_201_CREATED)
+async def create_challenge(username: str, current_user=Depends(get_current_user)):
+    url = f"https://lichess.org/api/challenge/{username}"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    params = {}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, params=params)
+        if response.status_code == 200:
+            return {"message": "Success"}
+        else:
+            return {
+                "error": f"Failed to send challenge: {response.status_code}",
+                "details": response.text
+            }
+
+
 @router.get('/challenges', status_code=status.HTTP_200_OK)
 async def get_challenges(current_user=Depends(get_current_user)):
-    import httpx
     # https://lichess.org/api#tag/Challenges/operation/challengeList
     url = "https://lichess.org/api/challenge"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
@@ -276,8 +266,7 @@ async def get_challenges(current_user=Depends(get_current_user)):
 
 
 @router.post('/challenge/accept/{challengeId}', status_code=status.HTTP_201_CREATED)
-async def draw(challengeId: str, current_user=Depends(get_current_user)):
-    import httpx
+async def accept_challenge(challengeId: str, current_user=Depends(get_current_user)):
     # https://lichess.org/api#tag/Challenges/operation/challengeAccept
     url = f"https://lichess.org/api/challenge/{challengeId}/accept"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
@@ -297,8 +286,7 @@ async def draw(challengeId: str, current_user=Depends(get_current_user)):
 
 
 @router.post('/challenge/decline/{challengeId}', status_code=status.HTTP_201_CREATED)
-async def draw(challengeId: str, current_user=Depends(get_current_user)):
-    import httpx
+async def decline_challenge(challengeId: str, current_user=Depends(get_current_user)):
     # https://lichess.org/api#tag/Challenges/operation/challengeDecline
     url = f"https://lichess.org/api/challenge/{challengeId}/decline"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)

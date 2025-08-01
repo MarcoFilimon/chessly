@@ -45,7 +45,7 @@ async def register(
     }
 
 
-@router.post('/resend_verification')
+@router.post('/resend_verification', status_code=status.HTTP_200_OK)
 async def resend_verification_mail(
     user: User = Depends(get_current_user)
 ) -> None:
@@ -61,7 +61,7 @@ async def resend_verification_mail(
         "message": "The account is already verified."
     }
 
-@router.post('/login')
+@router.post('/login', status_code=status.HTTP_200_OK)
 async def login(
     payload: UserLogIn,
     session: AsyncSession = Depends(db.get_session)
@@ -73,7 +73,7 @@ async def login(
     return result
 
 
-@router.post('/refresh_token')
+@router.post('/refresh_token', status_code=status.HTTP_200_OK)
 async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer())):
     '''
     Generate a new access token based on the refresh token.
@@ -86,12 +86,13 @@ async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer(
         return JSONResponse(
             content={
                 "access_token": new_access_token
-            }
+            },
+            status_code=status.HTTP_200_OK
         )
     raise InvalidToken()
 
 
-@router.get('/me', response_model=User)
+@router.get('/me', response_model=User, status_code=status.HTTP_200_OK)
 async def get_current_user(
     user: User = Depends(get_current_user)
 ):
@@ -101,16 +102,14 @@ async def get_current_user(
     return user
 
 
-@router.post('/logout')
+@router.post('/logout', status_code=status.HTTP_200_OK)
 async def logout(token_details: dict = Depends(AccessTokenBearer())):
     '''
     Logout user.
     '''
     jti = token_details["jti"]
     await redis.add_jti_to_blocklist(jti)
-    return JSONResponse(
-        content={"message": "Logged Out Successfully"}, status_code=status.HTTP_200_OK
-    )
+    return {"message": "Logged Out successfully."}
 
 
 @router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
@@ -125,7 +124,7 @@ async def delete_user(
     return await service.delete_user(user_id, session)
 
 
-@router.put('/{user_id}', response_model=User)
+@router.put('/{user_id}', response_model=User, status_code=status.HTTP_200_OK)
 async def update_user(
     user_id: int,
     payload: UserUpdate,
@@ -140,7 +139,7 @@ async def update_user(
     return user
 
 
-@router.get('/verify/{token}')
+@router.get('/verify/{token}', status_code=status.HTTP_200_OK)
 async def verify_user_account(
     token: str,
     session: AsyncSession = Depends(db.get_session),
@@ -154,15 +153,11 @@ async def verify_user_account(
     if user_email:
         user = await service.get_user_by_email(user_email, session)
         _ = await service.update_user(user.id, {"is_verified": True}, session, None)
-        return JSONResponse(
-            content={
-                "message": "Account verified succesfully."
-            }
-        )
+        return {"message: Account verified succesfully."}
     raise UserNotFound()
 
 
-@router.post('/request_password_reset')
+@router.post('/request_password_reset', status_code=status.HTTP_200_OK)
 async def request_password_reset(
     payload: PasswordResetRequest
 ):
@@ -170,15 +165,10 @@ async def request_password_reset(
     Request password reset endpoint by sending an email.
     '''
     _ = await service.send_password_reset_request(payload)
-    return JSONResponse(
-        content={
-            "message": "Reset password request has been sent! Check your email."
-        },
-        status_code=status.HTTP_200_OK
-    )
+    return {"message": "Reset password request has been sent! Check your email."}
 
 
-@router.post('/reset_password/{token}')
+@router.post('/reset_password/{token}', status_code=status.HTTP_200_OK)
 async def reset_password(
     token: str,
     passwords: PasswordReset,
@@ -197,14 +187,9 @@ async def reset_password(
     user_email = token_data.get('email')
     if user_email:
         user = await service.get_user_by_email(user_email, session)
-
         _ = await service.update_user(user.id, {"password": Hash.bcrypt(passwords.new_password)}, session, None)
-        return JSONResponse(
-            content={
-                "message": "Password reset succesfully."
-            },
-            status_code=status.HTTP_200_OK
-        )
+        return {"message": "Password reset successfully."}
+
     return JSONResponse(
         content={"message": "Error occured during password reset."},
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
