@@ -103,3 +103,45 @@ export async function sendChallenge(username: string): Promise<void> {
         throw new Error(error.detail || error.message || 'Failed to create the challenge.');
     }
 }
+
+
+export async function resignGame(gameId: string): Promise<void> {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/resign/${gameId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to resign the game.');
+    }
+}
+
+
+export async function drawGame(gameId: string): Promise<void> {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/draw/${gameId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to draw the game.');
+    }
+}

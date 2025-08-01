@@ -197,7 +197,7 @@ async def make_move(payload: Move, current_user=Depends(get_current_user)):
 
 
 @router.post('/create_challenge/{username}', status_code=status.HTTP_201_CREATED)
-async def make_move(username: str, current_user=Depends(get_current_user)):
+async def create_challenge(username: str, current_user=Depends(get_current_user)):
     import httpx
     url = f"https://lichess.org/api/challenge/{username}"
     lichess_token = decrypt_lichess_token(current_user.lichess_token)
@@ -212,5 +212,46 @@ async def make_move(username: str, current_user=Depends(get_current_user)):
         else:
             return {
                 "error": f"Failed to send challenge: {response.status_code}",
+                "details": response.text
+            }
+
+
+@router.post('/resign/{gameId}', status_code=status.HTTP_201_CREATED)
+async def resign(gameId: str, current_user=Depends(get_current_user)):
+    import httpx
+    url = f"https://lichess.org/api/board/game/{gameId}/resign"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    params = {}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, params=params)
+        if response.status_code == 200:
+            return {"message": "Success"}
+        else:
+            return {
+                "error": f"Failed to resign: {response.status_code}",
+                "details": response.text
+            }
+
+
+@router.post('/draw/{gameId}', status_code=status.HTTP_201_CREATED)
+async def draw(gameId: str, current_user=Depends(get_current_user)):
+    import httpx
+    # https://lichess.org/api#tag/Board/operation/boardGameDraw
+    url = f"https://lichess.org/api/board/game/{gameId}/draw/yes"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    params = {}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, params=params)
+        if response.status_code == 200:
+            return {"message": "Success"}
+        else:
+            return {
+                "error": f"Failed to draw: {response.status_code}",
                 "details": response.text
             }

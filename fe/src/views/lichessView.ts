@@ -1,5 +1,5 @@
 import { appContent } from "../dom.js";
-import { getLichessUserInfo, getOngoingGames, makeMove, sendChallenge} from '../api/lichessAPI.js'
+import { getLichessUserInfo, getOngoingGames, makeMove, sendChallenge, resignGame, drawGame} from '../api/lichessAPI.js'
 import { Modal } from "../utils/general.js";
 
 import { setCurrentView } from '../state.js';
@@ -8,6 +8,7 @@ import { renderApp } from '../views/home.js';
 
 const whiteSquareGrey = '#a9a9a9'
 const blackSquareGrey = '#696969'
+let endedInDraw = false;
 
 declare global {
     interface Window {
@@ -246,6 +247,14 @@ function renderContent(lichessGame: any) {
             <div class="flex flex-col items-center gap-2 w-full">
                 <div id="board-${lichessGame.fullId}" class="mx-auto" style="width: 400px"></div>
                 <div id="game-status" class="text-lg text-center text-gray-700 font-semibold min-h-[2rem]"></div>
+                <div class="flex gap-4 mt-2">
+                    <button id="resignBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded shadow">
+                        Resign
+                    </button>
+                    <button id="drawBtn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded shadow">
+                        Offer Draw
+                    </button>
+                </div>
             </div>
             <div class="w-full flex justify-between mt-2 text-sm text-gray-600">
                 <span>Playing as: <span class="font-bold capitalize">${lichessGame.color}</span></span>
@@ -253,6 +262,28 @@ function renderContent(lichessGame: any) {
             </div>
         </div>
     `;
+
+        // Add event listeners for resign and draw buttons
+    document.getElementById('resignBtn')?.addEventListener('click', async () => {
+        try {
+            if (!confirm('Are you sure you want to resign the game?')) return;
+            await resignGame(lichessGame.fullId);
+            Modal.show("You resigned the game.");
+            renderLichess();
+        } catch (error: any) {
+            Modal.show("Failed to resign: " + error.message);
+        }
+    });
+
+    document.getElementById('drawBtn')?.addEventListener('click', async () => {
+        try {
+            if (!confirm('Are you sure you want to draw the game?')) return;
+            await drawGame(lichessGame.fullId);
+            endedInDraw = true;
+        } catch (error: any) {
+            Modal.show("Failed to offer draw: " + error.message);
+        }
+    });
 }
 
 function startPollingForMoves(lichessGame: any, game: any, board: any) {
@@ -266,8 +297,11 @@ function startPollingForMoves(lichessGame: any, game: any, board: any) {
             const isCurrentGameEnded = !games.data.nowPlaying.some((g: any) => g.fullId === lichessGame.fullId);
             if (isCurrentGameEnded) {
                 if (currentPollingCleanup) currentPollingCleanup();
-                Modal.show("Game ended");
                 setCurrentView('viewLichess');
+                if (endedInDraw)
+                    Modal.show("Game ended in a draw.")
+                else
+                    Modal.show("Game ended");
                 renderApp();
             }
 
