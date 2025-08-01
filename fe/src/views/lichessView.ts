@@ -1,5 +1,6 @@
 import { appContent } from "../dom.js";
 import { getLichessUserInfo, getOngoingGames, makeMove, sendChallenge, resignGame, drawGame} from '../api/lichessAPI.js'
+import { getChallenges, acceptChallenge, declineChallenge } from '../api/lichessAPI.js';
 import { Modal } from "../utils/general.js";
 
 import { setCurrentView } from '../state.js';
@@ -103,15 +104,23 @@ export async function renderLichess() {
                     </div>
                 </form>
 
+                <div id="lichessChallengesSection" class="mb-8"></div>
+
                 <div id="lichessGamesSection">
                     <h3 class="text-xl font-bold mb-2">Ongoing Games</h3>
                     <div id="lichessGamesList" class="space-y-2"></div>
                 </div>
+
+
             </div>
         `;
 
     // Initial render of games
     await renderOngoingGames();
+
+    // Render incoming challenges
+    await renderChallenges();
+
 
     document.getElementById("challengePlayer")?.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -227,6 +236,73 @@ function updateStatus(game: any) {
     // Show status in the UI
     const statusDiv = document.getElementById('game-status');
     if (statusDiv) statusDiv.textContent = status;
+}
+
+async function renderChallenges() {
+    const challengesDiv = document.getElementById('lichessChallengesSection');
+    if (!challengesDiv) return;
+    challengesDiv.innerHTML = ''; // Clear previous
+
+    try {
+        const result = await getChallenges();
+        const challenges = result.data.in || [];
+        if (challenges.length === 0) return;
+
+        challengesDiv.innerHTML = `
+            <h3 class="text-xl font-bold mb-2">Incoming Challenges</h3>
+            <table class="min-w-full divide-y divide-gray-200 mb-4">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rating</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Speed</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${challenges.map((challenge: any) => `
+                        <tr class="bg-white border-b">
+                            <td class="font-semibold text-center">${challenge.challenger.name}</td>
+                            <td class="font-semibold text-center">${challenge.challenger.rating ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${challenge.speed ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">
+                                <button class="accept-challenge-btn bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded" data-challenge-id="${challenge.id}">Accept</button>
+                                <button class="decline-challenge-btn bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded" data-challenge-id="${challenge.id}">Decline</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        // Attach event listeners
+        challengesDiv.querySelectorAll('.accept-challenge-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const challengeId = (e.currentTarget as HTMLElement).getAttribute('data-challenge-id');
+                try {
+                    await acceptChallenge(challengeId!);
+                    Modal.show("Challenge accepted!");
+                    await renderLichess();
+                } catch (error: any) {
+                    Modal.show("Failed to accept challenge: " + error.message);
+                }
+            });
+        });
+        challengesDiv.querySelectorAll('.decline-challenge-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const challengeId = (e.currentTarget as HTMLElement).getAttribute('data-challenge-id');
+                try {
+                    await declineChallenge(challengeId!);
+                    Modal.show("Challenge declined.");
+                    await renderLichess();
+                } catch (error: any) {
+                    Modal.show("Failed to decline challenge: " + error.message);
+                }
+            });
+        });
+    } catch (error: any) {
+        challengesDiv.innerHTML = `<div class="text-red-600">Failed to load challenges: ${error.message}</div>`;
+    }
 }
 
 function renderContent(lichessGame: any) {

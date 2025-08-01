@@ -255,3 +255,63 @@ async def draw(gameId: str, current_user=Depends(get_current_user)):
                 "error": f"Failed to draw: {response.status_code}",
                 "details": response.text
             }
+
+
+@router.get('/challenges', status_code=status.HTTP_200_OK)
+async def get_challenges(current_user=Depends(get_current_user)):
+    import httpx
+    # https://lichess.org/api#tag/Challenges/operation/challengeList
+    url = "https://lichess.org/api/challenge"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        if response.status_code == 200:
+            return {"data": response.json()}
+        else:
+
+            return {"error:" f"Failed to get challenges: {response.status_code}"}
+
+
+@router.post('/challenge/accept/{challengeId}', status_code=status.HTTP_201_CREATED)
+async def draw(challengeId: str, current_user=Depends(get_current_user)):
+    import httpx
+    # https://lichess.org/api#tag/Challenges/operation/challengeAccept
+    url = f"https://lichess.org/api/challenge/{challengeId}/accept"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    params = {}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, params=params)
+        if response.status_code == 200:
+            return {"message": "Success"}
+        else:
+            return {
+                "error": f"Failed to accept challenge: {response.status_code}",
+                "details": response.text
+            }
+
+
+@router.post('/challenge/decline/{challengeId}', status_code=status.HTTP_201_CREATED)
+async def draw(challengeId: str, current_user=Depends(get_current_user)):
+    import httpx
+    # https://lichess.org/api#tag/Challenges/operation/challengeDecline
+    url = f"https://lichess.org/api/challenge/{challengeId}/decline"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    params = {}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, params=params)
+        if response.status_code == 200:
+            return {"message": "Success"}
+        else:
+            return {
+                "error": f"Failed to decline challenge: {response.status_code}",
+                "details": response.text
+            }
