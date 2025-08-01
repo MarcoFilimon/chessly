@@ -1,14 +1,12 @@
 from fastapi import status, APIRouter, Depends
 from fastapi.responses import JSONResponse
 from .schemas import *
-from src.utils.config import version, Config
+from src.utils.config import version
 from .service import LichessService
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.utils import *
 
 from src.auth.dependencies import (
-    AccessTokenBearer,
-    RefreshTokenBearer,
     RoleChecker,
     get_current_user,
 )
@@ -87,7 +85,6 @@ async def get_ongoing_games(current_user=Depends(get_current_user)):
     headers = {
         "Authorization": f"Bearer {lichess_token}"
     }
-    # I
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
         if response.status_code == 200:
@@ -176,6 +173,7 @@ async def stream_moves(gameId: str, current_user=Depends(get_current_user)):
     # Return a StreamingResponse from FastAPI
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+
 @router.post('/make_move', status_code=status.HTTP_201_CREATED)
 async def make_move(payload: Move, current_user=Depends(get_current_user)):
     import httpx
@@ -196,6 +194,7 @@ async def make_move(payload: Move, current_user=Depends(get_current_user)):
                 "error": f"Failed to make the move {data['move']}: {response.status_code}",
                 "details": response.text
             }
+
 
 @router.post('/create_challenge/{username}', status_code=status.HTTP_201_CREATED)
 async def make_move(username: str, current_user=Depends(get_current_user)):

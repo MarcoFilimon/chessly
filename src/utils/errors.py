@@ -17,7 +17,7 @@ class InvalidToken(Chessly):
     pass
 
 class InvalidLichessToken(Chessly):
-    """Lichess toekn is missing or could not be decrypted."""
+    """Lichess token is missing or could not be decrypted."""
 
     pass
 
@@ -209,7 +209,7 @@ def register_all_errors(app: FastAPI):
         create_exception_handler(
             status_code=status.HTTP_401_UNAUTHORIZED,
             initial_detail={
-                "message": "Lichess toekn is missing or could not be decrypted. Please input a valid token.",
+                "message": "Lichess token is missing or could not be decrypted. Please input a valid token.",
                 "resolution": "Please provide a valid token from lichess.",
                 "error_code": "invalid_lichess_token",
             },

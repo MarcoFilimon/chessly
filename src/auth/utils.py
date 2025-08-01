@@ -73,14 +73,13 @@ def encrypt_lichess_token(lichess_token: str) -> str:
 
 def decrypt_lichess_token(encrypted_token: str) -> str:
     if not encrypted_token:
-        raise ValueError("No encrypted token provided for decryption.")
+        raise InvalidLichessToken()
     try:
         decrypted = fernet.decrypt(encrypted_token.encode())
         if not decrypted:
             raise InvalidLichessToken()
         return decrypted.decode()
     except InvalidToken:
-        # Custom error or logging can go here
         raise InvalidLichessToken("Failed to decrypt Lichess token: Invalid or corrupted token.")
     except Exception as e:
         print("Fernet decryption error:", e)

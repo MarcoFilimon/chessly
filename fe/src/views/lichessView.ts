@@ -215,7 +215,13 @@ function updateStatus(game: any) {
         status = moveColor + ' to move'
         // check?
         if (game.inCheck())
+        {
+            const locationArray = game.findPiece({ type: 'k', color: moveColor.charAt(0).toLowerCase() });
             status += ', ' + moveColor + ' is in check.'
+            if (locationArray) {
+                redSquare(locationArray[0]);
+            }
+        }
     }
     // Show status in the UI
     const statusDiv = document.getElementById('game-status');
@@ -256,8 +262,16 @@ function startPollingForMoves(lichessGame: any, game: any, board: any) {
     async function poll() {
         if (!polling) return;
         try {
-            const result = await getOngoingGames();
-            const updatedGame = result.data.nowPlaying.find((g: any) => g.fullId === lichessGame.fullId);
+            const games = await getOngoingGames();
+            const isCurrentGameEnded = !games.data.nowPlaying.some((g: any) => g.fullId === lichessGame.fullId);
+            if (isCurrentGameEnded) {
+                if (currentPollingCleanup) currentPollingCleanup();
+                Modal.show("Game ended");
+                setCurrentView('viewLichess');
+                renderApp();
+            }
+
+            const updatedGame = games.data.nowPlaying.find((g: any) => g.fullId === lichessGame.fullId);
             if (updatedGame && updatedGame.lastMove !== lastMove) {
                 lastMove = updatedGame.lastMove;
                 // Update the chess.js game and board
@@ -284,6 +298,7 @@ function removeGreySquares() {
     });
 }
 
+
 function greySquare(square: string) {
     const squareEl = document.querySelector('.square-' + square) as HTMLElement | null;
     if (!squareEl) return;
@@ -294,13 +309,18 @@ function greySquare(square: string) {
     squareEl.style.background = background;
 }
 
+function redSquare(squareLocation: string) {
+    const squareEl = document.querySelector(`.square-55d63[data-square="${squareLocation}"]`) as HTMLElement | null;
+    if (!squareEl) return;
+    squareEl.style.background = '#ff4d4d';
+}
+
 function renderGameBoard(lichessGame: any) {
     // Stop any previous polling before starting a new one
     if (currentPollingCleanup) currentPollingCleanup();
     renderContent(lichessGame);
     try {
         const game = new Chess(lichessGame.fen || 'start');
-        updateStatus(game);
         const board = window.Chessboard(`board-${lichessGame.fullId}`, {
             position: game.fen(),
             orientation: lichessGame.color,
@@ -349,8 +369,16 @@ function renderGameBoard(lichessGame: any) {
             },
             onMouseoutSquare() {
                 removeGreySquares();
+                // Re-highlight king's square if in check
+                if (game.inCheck()) {
+                    const locationArray = game.findPiece({ type: 'k', color: game.turn() });
+                    if (locationArray) {
+                        redSquare(locationArray[0]);
+                    }
+                }
             }
         });
+        updateStatus(game);
         setCurrentPollingCleanup(startPollingForMoves(lichessGame, game, board));
         console.log(`Chessboard initialized for game ${lichessGame.fullId}`);
     } catch (error) {
