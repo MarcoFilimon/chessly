@@ -3,7 +3,8 @@ import {
     getCurrentTournament,
     setCurrentTournament,
     getTournaments,
-    setSelectedRoundIdx
+    setSelectedRoundIdx,
+    setTournaments
 } from '../state.js'
 
 import {
@@ -11,7 +12,10 @@ import {
     startTournament,
     createTournament,
     updateTournament,
-    fetchTournament
+    fetchTournament,
+    fetchTournaments,
+    endTournament,
+    fetchTournamentCounts
 } from '../api/tournamentAPI.js'
 
 import {
@@ -81,7 +85,7 @@ export function attachStartEndTournamentHandlers() {
 
         try {
             currentTournament.status = "Finished"
-            await updateTournament(currentTournament);
+            await endTournament(currentTournament);
             Modal.show("Tournament ended! See the results.");
             setCurrentView('viewTournamentResults');
             renderApp();
@@ -184,7 +188,10 @@ export function attachTournamentOperationListeners() {
             if (!tournamentId) return;
             if (!confirm('Are you sure you want to delete this tournament?')) return;
             try {
-                await deleteTournament(tournamentId);
+                const tournaments = getTournaments();
+                const tournament = tournaments.find(t => t.id == Number(tournamentId));
+                const statusTournament = tournament ? tournament.status : '';
+                await deleteTournament(tournamentId, statusTournament);
                 // Refresh the tournaments list
                 await renderViewTournaments();
             } catch (error: any) {
@@ -357,13 +364,20 @@ export function getTournamentFormValues() {
     };
 }
 
-export function renderTournamentsTabContent() {
+export async function renderTournamentsTabContent() {
     // Track which tab is active
     let tournamentTab = (window as any).tournamentTab || 'Not Started';
     let pageContent = '';
 
     const normalizeStatus = (status: string) => status.replace(/[\s_]/g, '').toLowerCase();
 
+    // Map tab to status filter
+    let statusFilter = '';
+    if (tournamentTab === "Not Started") statusFilter = "Not Started";
+    if (tournamentTab === "Ongoing") statusFilter = "Ongoing";
+    if (tournamentTab === "Finished") statusFilter = "Finished";
+
+    setTournaments(await fetchTournaments(statusFilter));
     const filtered = getTournaments().filter(t => {
         const status = normalizeStatus(t.status);
         if (tournamentTab === "Not Started") return status === "notstarted";
@@ -420,10 +434,11 @@ export function renderTournamentsTabContent() {
             </div>
         `;
     }
-    const tournaments = getTournaments();
-    const notStartedCount = tournaments.filter(t => normalizeStatus(t.status) === "notstarted").length;
-    const ongoingCount = tournaments.filter(t => normalizeStatus(t.status) === "ongoing").length;
-    const finishedCount = tournaments.filter(t => normalizeStatus(t.status) === "finished").length;
+
+    const counts = await fetchTournamentCounts();
+    const notStartedCount = counts["Not Started"] || 0;
+    const ongoingCount = counts["Ongoing"] || 0;
+    const finishedCount = counts["Finished"] || 0;
 
     // Tabs HTML
     const tournamentsHtml = `

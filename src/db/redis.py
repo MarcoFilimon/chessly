@@ -22,8 +22,8 @@ async def token_in_blocklist(jti: str) -> bool:
     return jti is not None # returns True or False
 
 
-async def invalidate_user_tournaments_cache(user_id: int):
-    pattern = f"user:{user_id}:tournaments*"
+async def invalidate_user_tournaments_cache(user_id: int, status="Not Started"):
+    pattern = f"user:{user_id}:tournaments:{status}"
     keys = await redis_client.keys(pattern)
     if keys:
         await redis_client.delete(*keys)

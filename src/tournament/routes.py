@@ -44,6 +44,7 @@ async def create_tournament(
 @router.put('/{id}', status_code=status.HTTP_200_OK, response_model=Tournament)
 async def update_tournament(
     id: int,
+    status: str,
     payload: TournamentUpdate,
     user: User = Depends(get_current_user),
     _ : bool = Depends(full_access),
@@ -52,50 +53,67 @@ async def update_tournament(
     '''
     Update a tournament.
     '''
-    await invalidate_user_tournaments_cache(user.id)
+    await invalidate_user_tournaments_cache(user.id, status)
     tournament = await service.update_tournament(id, payload, user, session)
     return tournament
 
 
 # e.g: {{ _.url }}/?limit=5&sort=avsc
 @router.get('/', response_model=list[Tournament], status_code=status.HTTP_200_OK)
-async def get_user_tournaments(
+async def fetch_tournaments(
+    status: str,
     limit: int = 10,
     sort: str = "desc",
     token_details: dict = Depends(acccess_token_bearer),
     session: AsyncSession = Depends(db.get_session)
 ) -> list[Tournament]:
     """
-    Retrieves all tournaments for current user. (up to the limit + sorted for start date)
+    Retrieves all tournaments with the given status, for the current user. (up to the limit + sorted for start date)
     """
     user_id = int(token_details["user_id"]) # get current user id from token
-    cache_key = f"user:{user_id}:tournaments:{limit}:{sort}"
+    cache_key = f"user:{user_id}:tournaments:{status}"
     # Try from redis cache
-    cached = await redis_client.get(cache_key) # this returns a list of bytes
+    cached = await redis_client.get(cache_key) # this returns a list of byte objects
     if cached is not None and len(cached) != 0:
     # if False:
-        # decode the bytes object to a uft-8 string
-        cached_string = cached.decode("utf-8")
+        cached_string = cached.decode("utf-8") # decode the bytes object to a uft-8 string
 
         # json.loads() returns a list of dictionaries
         tournaments_data = json.loads(cached_string)
         if tournaments_data:
-        # Now, iterate over the list of dictionaries and validate each one
             tournaments = [Tournament.model_validate(t) for t in tournaments_data]
             return tournaments
 
     # not cached, get them from db
-    tournaments = await service.get_all_tournaments(user_id, limit, sort, session)
+    tournaments = await service.get_all_tournaments(user_id, limit, sort, status, session)
 
     # cache results for future requests
     if tournaments:
-        await invalidate_user_tournaments_cache(user_id) #! remove any old data if it exists
+        await invalidate_user_tournaments_cache(user_id) #! remove any old data if it exists for consistency
         await redis_client.set(
             cache_key,
             json.dumps([get_full_tournament_data(t) for t in tournaments]),
             ex=3600)
 
     return tournaments
+
+
+@router.get('/counts', status_code=status.HTTP_200_OK)
+async def tournament_counts(
+    token_details: dict = Depends(acccess_token_bearer),
+    session: AsyncSession = Depends(db.get_session)
+):
+    """
+    Retrieves the total number of tournaments for current user.
+    e.g:
+    {
+	"Ongoing": 5,
+	"Finished": 2
+    }
+    """
+    user_id = int(token_details["user_id"])
+    nb = await service.total_tournaments(user_id, session)
+    return nb
 
 
 @router.get('/{id}', response_model=Tournament, status_code=status.HTTP_200_OK)
@@ -113,13 +131,14 @@ async def get_tournament(
 @router.delete('/{id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_tournament(
     id: int,
+    status: str,
     session: AsyncSession = Depends(db.get_session),
     user: User = Depends(get_current_user)
 ):
     """
     Delete tournament be ID.
     """
-    await invalidate_user_tournaments_cache(user.id)
+    await invalidate_user_tournaments_cache(user.id, status)
     await service.delete_tournament(id, session)
 
 
@@ -134,7 +153,24 @@ async def start_tournament(
     Start tournament: set status to Ongoing and generate all round pairings.
     """
     await invalidate_user_tournaments_cache(user.id)
+    await invalidate_user_tournaments_cache(user.id, status="Ongoing") # invalidate also ongoing because this just became one
     tournament = await service.start_tournament(id, session)
+    return tournament
+
+
+@router.put('/{id}/end', response_model=Tournament, status_code=status.HTTP_200_OK)
+async def end_tournament(
+    id: int,
+    _ : bool = Depends(full_access),
+    session: AsyncSession = Depends(db.get_session),
+    user: User = Depends(get_current_user)
+):
+    """
+    End tournament: set status to Finished.
+    """
+    await invalidate_user_tournaments_cache(user.id, status="Ongoing")
+    await invalidate_user_tournaments_cache(user.id, status="Finished") # invalidate also finished because this just became one
+    tournament = await service.end_tournament(id, session)
     return tournament
 
 
@@ -150,7 +186,7 @@ async def save_round_results(
     '''
     Update the results of a certain round.
     '''
-    await invalidate_user_tournaments_cache(user.id)
+    await invalidate_user_tournaments_cache(user.id, status="Ongoing")
     tournament = await service.update_results(id, round_number, payload, session)
     return tournament
 
