@@ -44,7 +44,6 @@ async def create_tournament(
 @router.put('/{id}', status_code=status.HTTP_200_OK, response_model=Tournament)
 async def update_tournament(
     id: int,
-    status: str,
     payload: TournamentUpdate,
     user: User = Depends(get_current_user),
     _ : bool = Depends(full_access),
@@ -53,7 +52,7 @@ async def update_tournament(
     '''
     Update a tournament.
     '''
-    await invalidate_user_tournaments_cache(user.id, status)
+    await invalidate_user_tournaments_cache(user.id)
     tournament = await service.update_tournament(id, payload, user, session)
     return tournament
 

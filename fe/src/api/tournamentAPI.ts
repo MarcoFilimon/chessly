@@ -26,7 +26,7 @@ export async function createTournament(payload: Partial<Tournament>): Promise<To
 }
 
 export async function fetchTournaments(statusFilter: string): Promise<Tournament[]> {
-    const url = new URL(`${fastApiBaseUrl}/tournament/`);
+    const url = new URL(`${fastApiBaseUrl}/tournament`);
     if (statusFilter) {
         url.searchParams.append('status', statusFilter);
     }
@@ -61,7 +61,7 @@ export async function fetchTournament(tournamentId: number): Promise<Tournament>
 
 
 export async function deleteTournament(tournamentId: string, statusTournament: string): Promise<void> {
-    const url = new URL(`${fastApiBaseUrl}/tournament/${tournamentId}/`)
+    const url = new URL(`${fastApiBaseUrl}/tournament/${tournamentId}`)
     if (statusTournament) {
         url.searchParams.append('status', statusTournament);
     }
@@ -129,11 +129,8 @@ export async function endTournament(currentTournament: Tournament, statusTournam
     }
 }
 
-export async function updateTournament(currentTournament: Tournament, statusTournament?: string): Promise<void> {
-    const url = new URL(`${fastApiBaseUrl}/tournament/${currentTournament.id}/`)
-    if (statusTournament) {
-        url.searchParams.append('status', statusTournament);
-    }
+export async function updateTournament(currentTournament: Tournament): Promise<void> {
+    const url = new URL(`${fastApiBaseUrl}/tournament/${currentTournament.id}`)
     const response = await apiFetch(url.toString(), {
         method: 'PUT',
         headers: {
