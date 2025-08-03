@@ -3,7 +3,8 @@ import {
     getCurrentTournament,
     setCurrentTournament,
     getTournaments,
-    setSelectedRoundIdx
+    setSelectedRoundIdx,
+    setTournaments
 } from '../state.js'
 
 import {
@@ -11,7 +12,10 @@ import {
     startTournament,
     createTournament,
     updateTournament,
-    fetchTournament
+    fetchTournament,
+    fetchTournaments,
+    endTournament,
+    fetchTournamentCounts
 } from '../api/tournamentAPI.js'
 
 import {
@@ -51,8 +55,8 @@ export function attachStartEndTournamentHandlers() {
             return;
         }
         try {
+            Modal.show("Starting tournament...", { spinner: true });
             const tournamentResp = await startTournament(currentTournament.id);
-            Modal.show("Tournament started! All rounds have been generated.");
 
             // Refresh tournament data
             setCurrentTournament(tournamentResp!);
@@ -66,8 +70,12 @@ export function attachStartEndTournamentHandlers() {
                 const tournamentRes = await fetchTournament(currentTournament.id);
                 setCurrentTournament(tournamentRes)
             }, 300); // 300ms delay, adjust as needed
+
+            Modal.close()
         } catch (error: any) {
             Modal.show(`Failed to start tournament: ${error.message}`);
+        } finally {
+            Modal.close(); // ensure modal is hidden even if error occurs.
         }
     });
 
@@ -81,7 +89,7 @@ export function attachStartEndTournamentHandlers() {
 
         try {
             currentTournament.status = "Finished"
-            await updateTournament(currentTournament);
+            await endTournament(currentTournament);
             Modal.show("Tournament ended! See the results.");
             setCurrentView('viewTournamentResults');
             renderApp();
@@ -184,7 +192,10 @@ export function attachTournamentOperationListeners() {
             if (!tournamentId) return;
             if (!confirm('Are you sure you want to delete this tournament?')) return;
             try {
-                await deleteTournament(tournamentId);
+                const tournaments = getTournaments();
+                const tournament = tournaments.find(t => t.id == Number(tournamentId));
+                const statusTournament = tournament ? tournament.status : '';
+                await deleteTournament(tournamentId, statusTournament);
                 // Refresh the tournaments list
                 await renderViewTournaments();
             } catch (error: any) {
@@ -357,88 +368,106 @@ export function getTournamentFormValues() {
     };
 }
 
-export function renderTournamentsTabContent() {
+export async function renderTournamentsTabContent() {
+    Modal.show("Loading tournaments...", { spinner: true });
     // Track which tab is active
     let tournamentTab = (window as any).tournamentTab || 'Not Started';
     let pageContent = '';
 
     const normalizeStatus = (status: string) => status.replace(/[\s_]/g, '').toLowerCase();
 
-    const filtered = getTournaments().filter(t => {
-        const status = normalizeStatus(t.status);
-        if (tournamentTab === "Not Started") return status === "notstarted";
-        if (tournamentTab === "Ongoing") return status === "ongoing";
-        if (tournamentTab === "Finished") return status === "finished";
-        return true;
-    });
+    // Map tab to status filter
+    let statusFilter = '';
+    if (tournamentTab === "Not Started") statusFilter = "Not Started";
+    if (tournamentTab === "Ongoing") statusFilter = "Ongoing";
+    if (tournamentTab === "Finished") statusFilter = "Finished";
 
-    if (filtered.length === 0 && tournamentTab === "Not Started") {
-        pageContent = `
-            <div class="flex flex-col items-center justify-center gap-4">
-                <p class="text-center text-gray-600">No tournaments in this category.</p>
-                <button id="createTournamentBtnHome" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
-                    Create New Tournament
+    try {
+        setTournaments(await fetchTournaments(statusFilter));
+        const filtered = getTournaments().filter(t => {
+            const status = normalizeStatus(t.status);
+            if (tournamentTab === "Not Started") return status === "notstarted";
+            if (tournamentTab === "Ongoing") return status === "ongoing";
+            if (tournamentTab === "Finished") return status === "finished";
+            return true;
+        });
+
+        if (filtered.length === 0 && tournamentTab === "Not Started") {
+            pageContent = `
+                <div class="flex flex-col items-center justify-center gap-4">
+                    <p class="text-center text-gray-600">No tournaments in this category.</p>
+                    <button id="createTournamentBtnHome" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        Create New Tournament
+                    </button>
+                </div>
+            `;
+        } else if (filtered.length === 0 && tournamentTab !== "Not Started") {
+            pageContent = `
+                <div class="flex flex-col items-center justify-center gap-4">
+                    <p class="text-center text-gray-600">No tournaments in this category.</p>
+                </div>
+            `;
+        } else {
+            pageContent = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${filtered.map(tournament => `
+                        <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 cursor-pointer tournament-card"
+                        data-tournament-id="${tournament.id}">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">${tournament.name}</h3>
+                            <p class="text-gray-600 text-sm mb-1"><strong>Start:</strong> ${formatDate(tournament.start_date)}</p>
+                            <p class="text-gray-600 text-sm mb-1"><strong>End:</strong> ${formatDate(tournament.end_date)}</p>
+                            <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
+                            <p class="text-gray-600 text-sm mb-1"><strong>Nb. of Players:</strong> ${tournament.nb_of_players}</p>
+                            <p class="text-gray-600 text-sm mb-1"><strong>Time Control:</strong> ${tournament.time_control}</p>
+                            <p class="text-gray-600 text-sm mb-1"><strong>Format:</strong> ${tournament.format}</p>
+                            <div class="mt-4 flex gap-4">
+                                ${(tournament.status === "Not Started") ? `
+                                <button type="button" class="update-tournament-btn" data-tournament-id="${tournament.id}" title="Update">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.293-6.293a1 1 0 011.414 0l3.586 3.586a1 1 0 010 1.414L13 17H9v-4z" />
+                                    </svg>
+                                </button>
+                                ` : ""
+                                }
+                                <button type="button" class="delete-tournament-btn" data-tournament-id="${tournament.id}" title="Delete">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500 hover:text-red-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        const counts = await fetchTournamentCounts();
+        const notStartedCount = counts["Not Started"] || 0;
+        const ongoingCount = counts["Ongoing"] || 0;
+        const finishedCount = counts["Finished"] || 0;
+
+        // Tabs HTML
+        const tournamentsHtml = `
+            <div class="flex gap-2 mb-6">
+                <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">
+                    Not Started (${notStartedCount})
+                </button>
+                <button id="ongoingTab" class="${tabBase} ${tournamentTab === 'Ongoing' ? tabActive : tabInactive}">
+                    Ongoing (${ongoingCount})
+                </button>
+                <button id="finishedTab" class="${tabBase} ${tournamentTab === 'Finished' ? tabActive : tabInactive}">
+                    Finished (${finishedCount})
                 </button>
             </div>
+            ${pageContent}
         `;
-    } else if (filtered.length === 0 && tournamentTab !== "Not Started") {
-        pageContent = `
-            <div class="flex flex-col items-center justify-center gap-4">
-                <p class="text-center text-gray-600">No tournaments in this category.</p>
-            </div>
-        `;
-    } else {
-        pageContent = `
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                ${filtered.map(tournament => `
-                    <div class="bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 cursor-pointer tournament-card"
-                    data-tournament-id="${tournament.id}">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-2">${tournament.name}</h3>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Start:</strong> ${formatDate(tournament.start_date)}</p>
-                        <p class="text-gray-600 text-sm mb-1"><strong>End:</strong> ${formatDate(tournament.end_date)}</p>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Location:</strong> ${tournament.location}</p>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Nb. of Players:</strong> ${tournament.nb_of_players}</p>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Time Control:</strong> ${tournament.time_control}</p>
-                        <p class="text-gray-600 text-sm mb-1"><strong>Format:</strong> ${tournament.format}</p>
-                        <div class="mt-4 flex gap-4">
-                            ${(tournament.status === "Not Started") ? `
-                            <button type="button" class="update-tournament-btn" data-tournament-id="${tournament.id}" title="Update">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500 hover:text-blue-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.293-6.293a1 1 0 011.414 0l3.586 3.586a1 1 0 010 1.414L13 17H9v-4z" />
-                                </svg>
-                            </button>
-                            ` : ""
-                            }
-                            <button type="button" class="delete-tournament-btn" data-tournament-id="${tournament.id}" title="Delete">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-500 hover:text-red-700 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
+        Modal.close();
+        return tournamentsHtml;
     }
-    const tournaments = getTournaments();
-    const notStartedCount = tournaments.filter(t => normalizeStatus(t.status) === "notstarted").length;
-    const ongoingCount = tournaments.filter(t => normalizeStatus(t.status) === "ongoing").length;
-    const finishedCount = tournaments.filter(t => normalizeStatus(t.status) === "finished").length;
-
-    // Tabs HTML
-    const tournamentsHtml = `
-        <div class="flex gap-2 mb-6">
-            <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">
-                Not Started (${notStartedCount})
-            </button>
-            <button id="ongoingTab" class="${tabBase} ${tournamentTab === 'Ongoing' ? tabActive : tabInactive}">
-                Ongoing (${ongoingCount})
-            </button>
-            <button id="finishedTab" class="${tabBase} ${tournamentTab === 'Finished' ? tabActive : tabInactive}">
-                Finished (${finishedCount})
-            </button>
-        </div>
-        ${pageContent}
-    `;
-    return tournamentsHtml;
+    catch(error: any) {
+        Modal.show("Failed to load tournaments: " + error.message);
+        throw error;
+    } finally {
+        Modal.close();
+    }
 }

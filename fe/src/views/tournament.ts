@@ -1,11 +1,7 @@
 import {
     getUserId,
-    setTournaments,
 } from '../state.js'
 
-import {
-    fetchTournaments,
-} from '../api/tournamentAPI.js'
 
 import {renderTournamentsTabContent, attachTournamentCreateListeners} from '../utils/tournamentUtils.js'
 import {appContent} from '../dom.js'
@@ -34,8 +30,7 @@ export function renderCreateTournament(): void {
 export async function renderViewTournaments(): Promise<void> {
     let tournamentsHtml = '';
     try {
-        setTournaments(await fetchTournaments());
-        tournamentsHtml = renderTournamentsTabContent();
+        tournamentsHtml = await renderTournamentsTabContent();
     } catch (error: any) {
         tournamentsHtml = `<p class="text-center text-red-600">Failed to load tournaments: ${error.message}</p>`;
     }

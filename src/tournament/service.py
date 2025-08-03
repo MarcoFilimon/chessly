@@ -1,6 +1,7 @@
 from sqlmodel import desc, select, asc
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy import func
 
 from src.db.models import Tournament, User, Round, Matchup, Player
 from .schemas import TournamentCreate, TournamentUpdate, RoundResult
@@ -147,10 +148,15 @@ class TournamentService:
         else:
             raise InsufficientPermission()
 
-    async def get_all_tournaments(self, user_id: int, limit: int, sort: str, session: AsyncSession):
+    async def get_all_tournaments(self, user_id: int, limit: int, sort: str, status: str, session: AsyncSession):
+        status_key = next((e.name for e in Status if e.value == status), None)
+        if not status_key:
+            raise ValueError("Invalid status value")
         order = desc(Tournament.start_date) if sort == "desc" else asc(Tournament.start_date)
+        statement = select(Tournament).where(Tournament.manager_id == user_id).limit(limit).order_by(order)
         if user_id is not None:
-            statement = select(Tournament).where(Tournament.manager_id == user_id).limit(limit).order_by(order)
+            # statement = select(Tournament).where(Tournament.manager_id == user_id).limit(limit).order_by(order)
+            statement = select(Tournament).where((Tournament.manager_id == user_id) & (Tournament.status == status_key)).limit(limit).order_by(order)
         else:
             statement = select(Tournament).limit(limit).order_by(order)
         result = await session.exec(statement)
@@ -197,6 +203,19 @@ class TournamentService:
 
         await session.refresh(tournament)
         return tournament
+
+
+    async def end_tournament(self, tournament_id: int, session: AsyncSession):
+        tournament = await self.get_tournament(tournament_id, session)
+        if tournament.status != Status.ONGOING:
+            raise TournamentStarted("Tournament cannot be ended.")
+
+        tournament.status = Status.FINISHED
+        session.add(tournament)
+        await session.commit()
+        await session.refresh(tournament)
+        return tournament
+
 
     async def get_matchups(self, tournament_id: int, round_number: int, session: AsyncSession):
         # Find the round by tournament_id and round_number
@@ -247,3 +266,14 @@ class TournamentService:
         await session.commit()
         tournament = await self.get_tournament(tournament_id, session)
         return tournament
+
+    async def total_tournaments(self, user_id: int, session: AsyncSession):
+        statement = (
+            select(Tournament.status, func.count())
+            .where(Tournament.manager_id == user_id)
+            .group_by(Tournament.status)
+        )
+        result = await session.exec(statement)
+        rows = result.all()
+        # Convert to dict: {status_value: count}
+        return {status: count for status, count in rows}

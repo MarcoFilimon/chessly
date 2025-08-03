@@ -25,8 +25,12 @@ export async function createTournament(payload: Partial<Tournament>): Promise<To
     return await response.json();
 }
 
-export async function fetchTournaments(): Promise<Tournament[]> {
-    const response = await apiFetch(`${fastApiBaseUrl}/tournament/`, {
+export async function fetchTournaments(statusFilter: string): Promise<Tournament[]> {
+    const url = new URL(`${fastApiBaseUrl}/tournament`);
+    if (statusFilter) {
+        url.searchParams.append('status', statusFilter);
+    }
+    const response = await apiFetch(url.toString(), {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
@@ -56,8 +60,12 @@ export async function fetchTournament(tournamentId: number): Promise<Tournament>
 }
 
 
-export async function deleteTournament(tournamentId: string): Promise<void> {
-    const response = await apiFetch(`${fastApiBaseUrl}/tournament/${tournamentId}`, {
+export async function deleteTournament(tournamentId: string, statusTournament: string): Promise<void> {
+    const url = new URL(`${fastApiBaseUrl}/tournament/${tournamentId}`)
+    if (statusTournament) {
+        url.searchParams.append('status', statusTournament);
+    }
+    const response = await apiFetch(url.toString(), {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${getToken()}`
@@ -101,8 +109,13 @@ export async function startTournament(currentTournamentId: number): Promise<void
     return await response.json();
 }
 
-export async function updateTournament(currentTournament: Tournament): Promise<void> {
-    const response = await apiFetch(`${fastApiBaseUrl}/tournament/${currentTournament.id}`, {
+
+export async function endTournament(currentTournament: Tournament, statusTournament?: string): Promise<void> {
+    const url = new URL(`${fastApiBaseUrl}/tournament/${currentTournament.id}/end`)
+    if (statusTournament) {
+        url.searchParams.append('status', statusTournament);
+    }
+    const response = await apiFetch(url.toString(), {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -113,6 +126,22 @@ export async function updateTournament(currentTournament: Tournament): Promise<v
     if (!response.ok) {
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to end the tournament.');
+    }
+}
+
+export async function updateTournament(currentTournament: Tournament): Promise<void> {
+    const url = new URL(`${fastApiBaseUrl}/tournament/${currentTournament.id}`)
+    const response = await apiFetch(url.toString(), {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify(currentTournament)
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || error.message || 'Failed to update the tournament.');
     }
 }
 
@@ -129,4 +158,18 @@ export async function generatePlayers(currentTournamentId: number): Promise<void
         const error = await response.json();
         throw new Error(error.detail || error.message || 'Failed to generate players.');
     }
+}
+
+
+export async function fetchTournamentCounts(): Promise<{ [status: string]: number }> {
+    const url = new URL(`${fastApiBaseUrl}/tournament/counts`);
+    const response = await apiFetch(url.toString(), {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        },
+    });
+    if (!response.ok) throw new Error('Failed to fetch tournament counts');
+    return await response.json();
 }
