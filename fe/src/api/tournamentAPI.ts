@@ -120,8 +120,7 @@ export async function endTournament(currentTournament: Tournament, statusTournam
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${getToken()}`
-        },
-        body: JSON.stringify(currentTournament)
+        }
     });
     if (!response.ok) {
         const error = await response.json();
