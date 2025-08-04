@@ -2,14 +2,14 @@ import {
     getPlayerSortColumn,
     getPlayerSortDirection,
     getCurrentTournament
-} from '../state.js'
+} from '../../state.js'
 
-import { Modal } from '../utils/general.js'
-import { isTournament } from '../utils/tournamentUtils.js'
-import {appContent} from '../dom.js'
-import {attachTournamentTabNavHandlers} from '../utils/navigationUtils.js'
-import { attachPlayerTableListeners, attachSortHandlers, renderPlayerRow, getSortedPlayers} from '../utils/playerUtils.js'
-import { renderTournamentTabs } from '../utils/navigationUtils.js'
+import { Modal } from '../../utils/general.js'
+import { isTournament } from '../../utils/tournamentUtils.js'
+import {appContent} from '../../dom.js'
+import {attachTournamentTabNavHandlers} from '../../utils/navigationUtils.js'
+import { attachPlayerTableListeners, attachSortHandlers, renderPlayerRow, getSortedPlayers} from '../../utils/playerUtils.js'
+import { renderTournamentTabs } from '../../utils/navigationUtils.js'
 
 export async function renderTournamentPlayers(): Promise<void> {
     const currentTournament = getCurrentTournament();

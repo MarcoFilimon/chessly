@@ -18,8 +18,8 @@ import {
 } from './navigationUtils.js'
 
 import {getSelectedRoundIdx, setSelectedRoundIdx} from '../state.js'
-import {renderTournamentResults} from '../views/tournamentResults.js'
-import { renderTournamentGames } from '../views/tournamentGames.js'
+import {renderTournamentResults} from '../views/tournament/tournamentResults.js'
+import { renderTournamentGames } from '../views/tournament/tournamentGames.js'
 
 export function attachSaveResultsButtonHandler(currentTournament: Tournament) {
     document.getElementById('saveResultsBtn')?.addEventListener('click', async () => {

@@ -1,15 +1,15 @@
 import {
     getUserId,
-} from '../state.js'
+} from '../../state.js'
 
 
-import {renderTournamentsTabContent, attachTournamentCreateListeners} from '../utils/tournamentUtils.js'
-import {appContent} from '../dom.js'
+import {renderTournamentsTabContent, attachTournamentCreateListeners} from '../../utils/tournamentUtils.js'
+import {appContent} from '../../dom.js'
 
 import {
     attachTournamentOperationListeners,
     renderTournamentForm,
-} from '../utils/tournamentUtils.js'
+} from '../../utils/tournamentUtils.js'
 
 
 export function renderCreateTournament(): void {

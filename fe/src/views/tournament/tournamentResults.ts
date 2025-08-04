@@ -1,9 +1,9 @@
-import {setCurrentView, getCurrentTournament} from '../state.js'
-import {Modal} from '../utils/general.js'
-import {renderApp} from './home.js'
-import {appContent} from '../dom.js'
-import {attachTournamentTabNavHandlers, renderTournamentTabs} from '../utils/navigationUtils.js'
-import { getPlayerStats, renderRoundHeaders, renderPlayerRows } from '../utils/playerUtils.js'
+import {setCurrentView, getCurrentTournament} from '../../state.js'
+import {Modal} from '../../utils/general.js'
+import {renderApp} from '../home.js'
+import {appContent} from '../../dom.js'
+import {attachTournamentTabNavHandlers, renderTournamentTabs} from '../../utils/navigationUtils.js'
+import { getPlayerStats, renderRoundHeaders, renderPlayerRows } from '../../utils/playerUtils.js'
 
 export async function renderTournamentResults(): Promise<void> {
     const currentTournament = getCurrentTournament();

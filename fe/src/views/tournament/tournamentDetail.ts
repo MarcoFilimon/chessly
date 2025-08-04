@@ -1,13 +1,13 @@
 import {
     setCurrentView,
     getCurrentTournament,
-} from '../state.js'
+} from '../../state.js'
 
-import {Modal, formatDate} from '../utils/general.js'
-import {renderApp} from './home.js'
-import {appContent} from '../dom.js'
-import {attachTournamentTabNavHandlers, renderTournamentTabs} from '../utils/navigationUtils.js'
-import {attachStartEndTournamentHandlers} from '../utils/tournamentUtils.js'
+import {Modal, formatDate} from '../../utils/general.js'
+import {renderApp} from '../home.js'
+import {appContent} from '../../dom.js'
+import {attachTournamentTabNavHandlers, renderTournamentTabs} from '../../utils/navigationUtils.js'
+import {attachStartEndTournamentHandlers} from '../../utils/tournamentUtils.js'
 
 export function renderTournamentDetail(): void {
     const currentTournament = getCurrentTournament();

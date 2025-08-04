@@ -24,7 +24,7 @@ import { Modal } from './general.js'
 import { isTournament } from './tournamentUtils.js'
 import {renderApp} from '../views/home.js'
 import {type Player, type Matchup, type Tournament} from '../types.js'
-import { renderTournamentPlayers } from '../views/tournamentPlayers.js'
+import { renderTournamentPlayers } from '../views/tournament/tournamentPlayers.js'
 import {appContent} from '../dom.js'
 
 

@@ -28,7 +28,7 @@ import {
 import type {Tournament, TournamentTimeControl} from '../types.js'
 import {Modal, formatDate} from './general.js'
 import {renderApp} from '../views/home.js'
-import {renderViewTournaments} from '../views/tournament.js'
+import {renderViewTournaments} from '../views/tournament/tournament.js'
 import {appContent} from '../dom.js'
 
 export function isTournament(obj: unknown): obj is Tournament {
@@ -448,7 +448,7 @@ export async function renderTournamentsTabContent() {
 
         // Tabs HTML
         const tournamentsHtml = `
-            <div class="flex gap-2 mb-6">
+            <div class="flex gap-2 mb-6 space-x-4">
                 <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">
                     Not Started (${notStartedCount})
                 </button>
