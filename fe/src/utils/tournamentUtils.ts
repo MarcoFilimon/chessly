@@ -28,7 +28,7 @@ import {
 import type {Tournament, TournamentTimeControl} from '../types.js'
 import {Modal, formatDate} from './general.js'
 import {renderApp} from '../views/home.js'
-import {renderViewTournaments} from '../views/tournament.js'
+import {renderViewTournaments} from '../views/tournament/tournament.js'
 import {appContent} from '../dom.js'
 
 export function isTournament(obj: unknown): obj is Tournament {

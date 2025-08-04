@@ -28,25 +28,25 @@ import {appContent, authButtonsContainer} from '../dom.js'
 import {
     renderCreateTournament,
     renderViewTournaments,
-} from './tournament.js'
+} from './tournament/tournament.js'
 
 import {
     renderTournamentDetail
-} from './tournamentDetail.js'
+} from './tournament/tournamentDetail.js'
 
-import {renderTournamentGames} from './tournamentGames.js'
+import {renderTournamentGames} from './tournament/tournamentGames.js'
 
-import {renderTournamentPlayers} from './tournamentPlayers.js'
+import {renderTournamentPlayers} from './tournament/tournamentPlayers.js'
 
-import {renderTournamentResults} from './tournamentResults.js'
+import {renderTournamentResults} from './tournament/tournamentResults.js'
 
 import { renderViewUser } from './profile.js'
 
 import type { User } from '../types.js'
 
-import { renderLichess } from './lichessView.js'
+import { renderLichess } from './lichess/lichessView.js'
 
-import { getCurrentPollingCleanup, setCurrentPollingCleanup } from './lichessView.js';
+import { getCurrentPollingCleanup, setCurrentPollingCleanup } from './lichess/lichessView.js';
 
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();

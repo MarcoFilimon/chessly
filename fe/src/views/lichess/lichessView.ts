@@ -1,4 +1,4 @@
-import { appContent } from "../dom.js";
+import { appContent } from "../../dom.js";
 import {
     getLichessUserInfo,
     getOngoingGames,
@@ -9,13 +9,13 @@ import {
     listenForMoves,
     cancelChallenge,
     challengeAI
-} from '../api/lichessAPI.js'
+} from '../../api/lichessAPI.js'
 
-import { getChallenges, acceptChallenge, declineChallenge } from '../api/lichessAPI.js';
-import { Modal } from "../utils/general.js";
+import { getChallenges, acceptChallenge, declineChallenge } from '../../api/lichessAPI.js';
+import { Modal } from "../../utils/general.js";
 
-import { setCurrentView } from '../state.js';
-import { renderApp } from '../views/home.js';
+import { setCurrentView } from '../../state.js';
+import { renderApp } from '../home.js';
 
 
 const whiteSquareGrey = '#a9a9a9'
