@@ -448,7 +448,7 @@ export async function renderTournamentsTabContent() {
 
         // Tabs HTML
         const tournamentsHtml = `
-            <div class="flex gap-2 mb-6">
+            <div class="flex gap-2 mb-6 space-x-4">
                 <button id="notStartedTab" class="${tabBase} ${tournamentTab === 'Not Started' ? tabActive : tabInactive}">
                     Not Started (${notStartedCount})
                 </button>

@@ -44,9 +44,9 @@ import { renderViewUser } from './profile.js'
 
 import type { User } from '../types.js'
 
-import { renderLichess } from './lichess/lichessView.js'
+import { renderLichess } from './lichess/lichess.js'
 
-import { getCurrentPollingCleanup, setCurrentPollingCleanup } from './lichess/lichessView.js';
+import { getCurrentPollingCleanup, setCurrentPollingCleanup } from '../utils/lichessUtils.js';
 
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
