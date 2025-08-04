@@ -4,6 +4,8 @@ from .schemas import *
 from src.utils.config import version
 from .service import LichessService
 from src.auth.utils import *
+from sqlmodel.ext.asyncio.session import AsyncSession
+from src.db import db
 import httpx
 
 from src.auth.dependencies import (
@@ -93,10 +95,24 @@ async def get_ongoing_games(current_user=Depends(get_current_user)):
             return {"error:" f"Failed to fetch data: {response.status_code}"}
 
 
+@router.post('/sse_token')
+async def get_sse_token(current_user=Depends(get_current_user)):
+    '''
+    One time short lived token for my SSE game event.
+    Why? EventSource does not support custom headers (cannot send my auth token).
+    This way, I'm creating a safe url token everytime I open a game so I can retrieve
+    the lichess_token of the current user in stream_moves() endpoint.
+    '''
+    data = {
+        "user_id": current_user.id,
+        "purpose": "sse",
+    }
+    token = create_url_safe_token(data)
+    return {"sse_token": token}
+
+
 @router.get('/stream_moves/{gameId}', status_code=status.HTTP_200_OK)
-async def stream_moves(gameId: str, token: str = Query(...)):
-    from fastapi.responses import StreamingResponse
-    import asyncio # For potential sleep in real scenarios
+async def stream_moves(gameId: str, sse_token: str = Query(...),  session: AsyncSession = Depends(db.get_session)):
 
     # https://lichess.org/api#tag/Games/operation/streamGame
     # url = f"https://lichess.org/api/stream/game/{gameId}"
@@ -104,18 +120,20 @@ async def stream_moves(gameId: str, token: str = Query(...)):
     # https://lichess.org/api#tag/Board/operation/boardGameStream
     url = f"https://lichess.org/api/board/game/stream/{gameId}"
 
-    # lichess_token = decrypt_lichess_token(current_user.lichess_token)
-    lichess_token = "lip_1aYdPMHAkVX6LvXCBJ0H"
+    from fastapi.responses import StreamingResponse
+    from src.auth.service import UserService
+    user_service = UserService()
+    user_data = decode_url_safe_token(sse_token)
+    if not user_data or user_data.get("purpose") != "sse":
+        raise HTTPException(status_code=401, detail="Invalid or expired SSE token")
+    user = await user_service.get_user(user_data["user_id"], session)
+    lichess_token = decrypt_lichess_token(user.lichess_token)
+
     headers = {
         "Authorization": f"Bearer {lichess_token}",
         "Accept": "text/event-stream" # Explicitly request SSE
     }
 
-    # Set a longer timeout for the initial connection, or a None for infinite read timeout
-    # You might want a connect timeout but no read timeout for streams.
-    # httpx.Timeout(connect=10.0, read=None, write=10.0, pool=None)
-    # For a streaming response, the `read` timeout needs to be handled carefully.
-    # Often, you let the client decide when to close, or the server for inactivity.
     timeout_config = httpx.Timeout(120.0, connect=10.0, read=None)
 
     async def event_generator():
@@ -145,7 +163,6 @@ async def stream_moves(gameId: str, token: str = Query(...)):
         # finally:
             # print("Lichess stream connection closed.")
 
-    # Return a StreamingResponse from FastAPI
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 

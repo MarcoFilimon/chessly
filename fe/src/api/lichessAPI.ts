@@ -215,10 +215,10 @@ export async function challengeAI(): Promise<void> {
     }
 }
 
-export function listenForMoves(gameId: string, onMove: (fen: string, status?: string, winner?: string) => void): () => void {
+export async function listenForMoves(gameId: string, onMove: (fen: string, status?: string, winner?: string) => void): Promise<() => void> {
     // console.log("Opening SSE for game:", gameId);
-    const token = getToken();
-    const url = `${fastApiBaseUrl}/lichess/stream_moves/${gameId}?token=${encodeURIComponent(token!)}`;
+    const sseToken = await getSseToken();
+    const url = `${fastApiBaseUrl}/lichess/stream_moves/${gameId}?sse_token=${encodeURIComponent(sseToken)}`;
     const eventSource = new EventSource(url);
 
     eventSource.onmessage = (event) => {
@@ -251,4 +251,17 @@ export function listenForMoves(gameId: string, onMove: (fen: string, status?: st
 
     // Return a cleanup function to close the connection
     return () => eventSource.close();
+}
+
+
+export async function getSseToken(): Promise<string> {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/sse_token`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) throw new Error('Failed to get SSE token');
+    const { sse_token } = await response.json();
+    return sse_token;
 }

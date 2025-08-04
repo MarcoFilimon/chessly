@@ -175,7 +175,7 @@ async function renderChallengePlayers() {
                     ${outgoingChallenges.map((challenge: any) => `
                         <tr class="bg-white border-b">
                             <td class="font-semibold text-center">${challenge.destUser.name}</td>
-                            <td class="font-semibold text-center">${challenge.destUser.rating ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${challenge.destUser?.rating ?? 'N/A'}</td>
                             <td class="font-semibold text-center">${challenge.speed ?? 'N/A'}</td>
                             <td class="font-semibold text-center">
                                 <button class="cancel-challenge-btn bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded" data-challenge-id="${challenge.id}">Cancel</button>
@@ -239,16 +239,15 @@ async function renderOngoingGames() {
                     <tr>
                         <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Opponent</th>
                         <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rating</th>
-                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Playing as</th>
                         <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Game Link</th>
-                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Go Play</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase"></th>
                     </tr>
                 </thead>
                 <tbody>
                     ${games.map((lichessGame: any) => {
                         const opponent = lichessGame.opponent;
                         const opponentName = opponent.username;
-                        const opponentRating = opponent.rating;
+                        const opponentRating = opponent.rating ?? 'N/A';
                         const opponentProfile = `https://lichess.org/@/${opponentName}`;
                         return `
                             <tr class="bg-white border-b">
@@ -258,7 +257,6 @@ async function renderOngoingGames() {
                                     </a>
                                 </td>
                                 <td class="font-semibold text-center">${opponentRating}</td>
-                                <td class="font-semibold text-center">${lichessGame.color}</td>
                                 <td class="font-semibold text-center">
                                     <a href="https://lichess.org/${lichessGame.fullId}" target="_blank" class="text-blue-600 underline">View</a>
                                 </td>
@@ -444,7 +442,6 @@ function renderContent(lichessGame: any) {
 }
 
 function startListeningForMoves(lichessGame: any, game: any, board: any) {
-    let ended = false;
     let cleanup = listenForMoves(lichessGame.fullId, (fen: string, status?: string, winner?: string) => {
         game.load(fen || 'start');
         board.position(game.fen());
@@ -452,7 +449,6 @@ function startListeningForMoves(lichessGame: any, game: any, board: any) {
 
         // Handle resignation or other game end statuses
         if (status && ["mate", "resign", "draw", "stalemate", "timeout", "outoftime", "aborted"].includes(status)) {
-            ended = true;
             if (currentPollingCleanup) currentPollingCleanup();
             setCurrentView('viewLichess');
             if (status === "draw" || status === "stalemate") {
@@ -558,7 +554,9 @@ function renderGameBoard(lichessGame: any) {
             }
         });
         updateStatus(game);
-        setCurrentPollingCleanup(startListeningForMoves(lichessGame, game, board));
+        startListeningForMoves(lichessGame, game, board).then(cleanup => {
+            setCurrentPollingCleanup(cleanup);
+        });
         // console.log(`Chessboard initialized for game ${lichessGame.fullId}`);
     } catch (error) {
         console.error("Error initializing Chessboard:", error);
