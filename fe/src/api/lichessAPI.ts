@@ -1,6 +1,7 @@
 import { fastApiBaseUrl, apiFetch } from './utilsAPI.js'
 import { getToken } from '../state.js';
 
+import { Chess } from 'chess.js'; // Make sure you have chess.js imported
 
 export async function getLichessUserInfo(): Promise<any> {
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/`, {
@@ -54,37 +55,8 @@ export async function makeMove(gameId: string, source: string, target: string): 
     }
 }
 
-export async function listenForMoves(gameId: string, onMove: (fen: string) => void) {
-    const response = await fetch(`${fastApiBaseUrl}/lichess/stream_moves/${gameId}`, {
-        headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
-        }
-    });
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
 
-    while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let lines = buffer.split('\n');
-        buffer = lines.pop()!; // last line may be incomplete
-        for (const line of lines) {
-            if (!line.trim()) continue;
-            if (!line.startsWith('data:')) continue;
-            const jsonStr = line.slice(5).trim();
-            if (!jsonStr) continue;
-            const event = JSON.parse(jsonStr);
-            if (event.type === 'gameFull' || event.type === 'gameState') {
-                onMove(event.state.fen);
-            }
-        }
-    }
-}
-
-export async function sendChallenge(username: string): Promise<void> {
+export async function createChallenge(username: string): Promise<void> {
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/create_challenge/${username}`, {
         method: 'POST',
         headers: {
@@ -200,4 +172,42 @@ export async function declineChallenge(challengeId: string): Promise<void> {
         }
         throw new Error(error.detail || error.message || 'Failed to decline the challenge.');
     }
+}
+
+export function listenForMoves(gameId: string, onMove: (fen: string, status?: string, winner?: string) => void): () => void {
+    // console.log("Opening SSE for game:", gameId);
+    const token = getToken();
+    const url = `${fastApiBaseUrl}/lichess/stream_moves/${gameId}?token=${encodeURIComponent(token!)}`;
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+        // console.log("SSE event received:", event.data);
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'gameFull') {
+                onMove(data.state.fen, data.state.status, data.state.winner);
+            } else if (data.type === 'gameState') {
+                let fen = undefined;
+                if (data.fen) {
+                    fen = data.fen;
+                } else if (data.moves) {
+                    const chess = new Chess();
+                    for (const move of data.moves.split(' ')) {
+                        if (move) chess.move({ from: move.slice(0, 2), to: move.slice(2, 4) });
+                    }
+                    fen = chess.fen();
+                }
+                onMove(fen, data.status, data.winner);
+            }
+        } catch (e) {
+            console.warn("Failed to parse SSE event:", event.data);
+        }
+    };
+
+    eventSource.onerror = () => {
+        eventSource.close();
+    };
+
+    // Return a cleanup function to close the connection
+    return () => eventSource.close();
 }

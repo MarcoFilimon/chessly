@@ -1,5 +1,5 @@
 import { appContent } from "../dom.js";
-import { getLichessUserInfo, getOngoingGames, makeMove, sendChallenge, resignGame, drawGame} from '../api/lichessAPI.js'
+import { getLichessUserInfo, getOngoingGames, makeMove, createChallenge, resignGame, drawGame, listenForMoves} from '../api/lichessAPI.js'
 import { getChallenges, acceptChallenge, declineChallenge } from '../api/lichessAPI.js';
 import { Modal } from "../utils/general.js";
 
@@ -9,7 +9,6 @@ import { renderApp } from '../views/home.js';
 
 const whiteSquareGrey = '#a9a9a9'
 const blackSquareGrey = '#696969'
-let endedInDraw = false;
 
 declare global {
     interface Window {
@@ -28,6 +27,59 @@ export function getCurrentPollingCleanup() {
     return currentPollingCleanup;
 }
 
+function renderProfileSection(profile: any) {
+     return `
+        <h2 class="text-2xl font-bold mb-6 text-center">Lichess Profile</h2>
+        <div class="space-y-4 mb-8">
+            <div>
+                <span class="font-semibold">Username:</span>
+                <a href="${profile.data.url}" target="_blank" class="text-blue-600 underline">${profile.data.username}</a>
+            </div>
+            <div>
+                <span class="font-semibold">Created At:</span>
+                ${profile.data.createdAt ? new Date(profile.data.createdAt).toLocaleDateString() : 'N/A'}
+            </div>
+            <div>
+                <table class="min-w-full divide-y divide-gray-200 table-fixed">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th colspan="4" class="px-4 py-2 text-center text-sm font-bold text-gray-700 uppercase border-b">Ratings</th>
+                        </tr>
+                        <tr>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Bullet</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Blitz</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rapid</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Classical</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="font-semibold text-center">${profile.data.perfs?.bullet?.rating ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${profile.data.perfs?.blitz?.rating ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${profile.data.perfs?.rapid?.rating ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${profile.data.perfs?.classical?.rating ?? 'N/A'}</td>
+                        </tr>
+                        <tr class="bg-gray-100">
+                            <th colspan="4" class="px-4 py-2 text-center text-sm font-bold text-gray-700 uppercase border-b">Stats</th>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Matches</td>
+                            <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Wins</td>
+                            <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Loses</td>
+                            <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Draws</td>
+                        </tr>
+                        <tr>
+                            <td class="font-semibold text-center">${profile.data.count?.all ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${profile.data.count?.win ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${profile.data.count?.loss ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${profile.data.count?.draw ?? 'N/A'}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`
+}
+
 export async function renderLichess() {
     if (currentPollingCleanup) currentPollingCleanup();
     appContent.innerHTML = `
@@ -41,55 +93,7 @@ export async function renderLichess() {
 
         appContent.innerHTML = `
             <div class="p-8 max-w-xl mx-auto bg-white rounded-lg shadow-lg">
-                <h2 class="text-2xl font-bold mb-6 text-center">Lichess Profile</h2>
-                <div class="space-y-4 mb-8">
-                    <div>
-                        <span class="font-semibold">Username:</span>
-                        <a href="${profile.data.url}" target="_blank" class="text-blue-600 underline">${profile.data.username}</a>
-                    </div>
-                    <div>
-                        <span class="font-semibold">Created At:</span>
-                        ${profile.data.createdAt ? new Date(profile.data.createdAt).toLocaleDateString() : 'N/A'}
-                    </div>
-                    <div>
-                        <table class="min-w-full divide-y divide-gray-200 table-fixed">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th colspan="4" class="px-4 py-2 text-center text-sm font-bold text-gray-700 uppercase border-b">Ratings</th>
-                                </tr>
-                                <tr>
-                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Bullet</th>
-                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Blitz</th>
-                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rapid</th>
-                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Classical</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="font-semibold text-center">${profile.data.perfs?.bullet?.rating ?? 'N/A'}</td>
-                                    <td class="font-semibold text-center">${profile.data.perfs?.blitz?.rating ?? 'N/A'}</td>
-                                    <td class="font-semibold text-center">${profile.data.perfs?.rapid?.rating ?? 'N/A'}</td>
-                                    <td class="font-semibold text-center">${profile.data.perfs?.classical?.rating ?? 'N/A'}</td>
-                                </tr>
-                                <tr class="bg-gray-100">
-                                    <th colspan="4" class="px-4 py-2 text-center text-sm font-bold text-gray-700 uppercase border-b">Stats</th>
-                                </tr>
-                                <tr>
-                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Matches</td>
-                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Wins</td>
-                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Loses</td>
-                                    <td class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Draws</td>
-                                </tr>
-                                <tr>
-                                    <td class="font-semibold text-center">${profile.data.count?.all ?? 'N/A'}</td>
-                                    <td class="font-semibold text-center">${profile.data.count?.win ?? 'N/A'}</td>
-                                    <td class="font-semibold text-center">${profile.data.count?.loss ?? 'N/A'}</td>
-                                    <td class="font-semibold text-center">${profile.data.count?.draw ?? 'N/A'}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                ${renderProfileSection(profile)}
 
                 <h2 class="text-2xl font-bold mb-2 text-center">Challenge another player</h2>
                 <form id="challengePlayer" class="space-y-3 mb-8">
@@ -104,7 +108,7 @@ export async function renderLichess() {
                     </div>
                 </form>
 
-                <div id="lichessChallengesSection" class="mb-8"></div>
+                <div id="challengesToAcceptSection" class="mb-8"></div>
 
                 <div id="lichessGamesSection">
                     <h3 class="text-xl font-bold mb-2">Ongoing Games</h3>
@@ -126,7 +130,7 @@ export async function renderLichess() {
         e.preventDefault();
         const username = (document.getElementById("challengePlayerInput") as HTMLInputElement).value.trim();
         try {
-            await sendChallenge(username);
+            await createChallenge(username);
             Modal.show("Challenge sent succesfully!");
         } catch (error: any) {
             Modal.show("Failed to send challenge: " + error.message);
@@ -239,7 +243,7 @@ function updateStatus(game: any) {
 }
 
 async function renderChallenges() {
-    const challengesDiv = document.getElementById('lichessChallengesSection');
+    const challengesDiv = document.getElementById('challengesToAcceptSection');
     if (!challengesDiv) return;
     challengesDiv.innerHTML = ''; // Clear previous
 
@@ -355,52 +359,39 @@ function renderContent(lichessGame: any) {
         try {
             if (!confirm('Are you sure you want to draw the game?')) return;
             await drawGame(lichessGame.fullId);
-            endedInDraw = true;
         } catch (error: any) {
             Modal.show("Failed to offer draw: " + error.message);
         }
     });
 }
 
-function startPollingForMoves(lichessGame: any, game: any, board: any) {
-    let lastMove = lichessGame.lastMove;
-    let polling = true;
+function startListeningForMoves(lichessGame: any, game: any, board: any) {
+    let ended = false;
+    let cleanup = listenForMoves(lichessGame.fullId, (fen: string, status?: string, winner?: string) => {
+        game.load(fen || 'start');
+        board.position(game.fen());
+        updateStatus(game);
 
-    async function poll() {
-        if (!polling) return;
-        try {
-            const games = await getOngoingGames();
-            const isCurrentGameEnded = !games.data.nowPlaying.some((g: any) => g.fullId === lichessGame.fullId);
-            if (isCurrentGameEnded) {
-                if (currentPollingCleanup) currentPollingCleanup();
-                setCurrentView('viewLichess');
-                if (endedInDraw)
-                    Modal.show("Game ended in a draw.")
-                else
-                    Modal.show("Game ended");
-                renderApp();
+        // Handle resignation or other game end statuses
+        if (status && ["mate", "resign", "draw", "stalemate", "timeout", "outoftime", "aborted"].includes(status)) {
+            ended = true;
+            if (currentPollingCleanup) currentPollingCleanup();
+            setCurrentView('viewLichess');
+            if (status === "draw" || status === "stalemate") {
+                Modal.show("Game ended in a draw.");
+            } else if (status === "resign") {
+                Modal.show(`Game ended by resignation. Winner: ${winner || "unknown"}`);
+            } else if (status === "mate") {
+                Modal.show(`Checkmate! Winner: ${winner || "unknown"}`);
+            } else {
+                Modal.show(`Game ended: ${status}`);
             }
-
-            const updatedGame = games.data.nowPlaying.find((g: any) => g.fullId === lichessGame.fullId);
-            if (updatedGame && updatedGame.lastMove !== lastMove) {
-                lastMove = updatedGame.lastMove;
-                // Update the chess.js game and board
-                game.load(updatedGame.fen || 'start');
-                board.position(game.fen());
-                updateStatus(game);
-            }
-        } catch (e) {
-            console.warn("Polling error:", e);
+            renderApp();
         }
-        if (polling) setTimeout(poll, 1000);
-    }
+    });
 
-    poll();
-
-    // Return a cleanup function to stop polling
-    return () => { polling = false; };
+    return cleanup;
 }
-
 function removeGreySquares() {
     // Remove background from all squares
     document.querySelectorAll('.square-55d63').forEach(square => {
@@ -489,8 +480,8 @@ function renderGameBoard(lichessGame: any) {
             }
         });
         updateStatus(game);
-        setCurrentPollingCleanup(startPollingForMoves(lichessGame, game, board));
-        console.log(`Chessboard initialized for game ${lichessGame.fullId}`);
+        setCurrentPollingCleanup(startListeningForMoves(lichessGame, game, board));
+        // console.log(`Chessboard initialized for game ${lichessGame.fullId}`);
     } catch (error) {
         console.error("Error initializing Chessboard:", error);
         Modal.show("Failed to load chess board. Please check console for details.");
