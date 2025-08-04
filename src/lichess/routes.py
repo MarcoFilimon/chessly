@@ -1,4 +1,4 @@
-from fastapi import status, APIRouter, Depends, Query
+from fastapi import status, APIRouter, Depends, Query, HTTPException
 from fastapi.responses import JSONResponse
 from .schemas import *
 from src.utils.config import version
@@ -211,7 +211,7 @@ async def draw(gameId: str, current_user=Depends(get_current_user)):
             }
 
 
-@router.post('/create_challenge/{username}', status_code=status.HTTP_201_CREATED)
+@router.post('/challenge/create/{username}', status_code=status.HTTP_201_CREATED)
 async def create_challenge(username: str, current_user=Depends(get_current_user)):
     # https://lichess.org/api#tag/Challenges/operation/challengeCreate
     url = f"https://lichess.org/api/challenge/{username}"
@@ -268,6 +268,26 @@ async def accept_challenge(challengeId: str, current_user=Depends(get_current_us
             }
 
 
+@router.post('/challenge/cancel/{challengeId}', status_code=status.HTTP_201_CREATED)
+async def cancel_challenge(challengeId: str, current_user=Depends(get_current_user)):
+    # https://lichess.org/api#tag/Challenges/operation/challengeCancel
+    url = f"https://lichess.org/api/challenge/{challengeId}/cancel"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    params = {}
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, params=params)
+        if response.status_code == 200:
+            return {"message": "Success"}
+        else:
+            return {
+                "error": f"Failed to cancel challenge: {response.status_code}",
+                "details": response.text
+            }
+
+
 @router.post('/challenge/decline/{challengeId}', status_code=status.HTTP_201_CREATED)
 async def decline_challenge(challengeId: str, current_user=Depends(get_current_user)):
     # https://lichess.org/api#tag/Challenges/operation/challengeDecline
@@ -286,3 +306,25 @@ async def decline_challenge(challengeId: str, current_user=Depends(get_current_u
                 "error": f"Failed to decline challenge: {response.status_code}",
                 "details": response.text
             }
+
+
+@router.post('/challenge/AI', status_code=status.HTTP_201_CREATED)
+async def challenge_lichessAI(current_user=Depends(get_current_user)):
+    # https://lichess.org/api#tag/Challenges/operation/challengeAi
+    url = f"https://lichess.org/api/challenge/ai"
+    lichess_token = decrypt_lichess_token(current_user.lichess_token)
+    headers = {
+        "Authorization": f"Bearer {lichess_token}"
+    }
+    data = {"level": 5}  # <-- send as form data
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, data=data)
+        if response.status_code == 201:
+            return {"message": "Success"}
+        else:
+            # Raise an HTTP error so the frontend can catch it
+            detail = response.text
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Failed to challenge the LichessAI: {response.status_code} - {detail}"
+            )

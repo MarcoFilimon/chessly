@@ -1,5 +1,16 @@
 import { appContent } from "../dom.js";
-import { getLichessUserInfo, getOngoingGames, makeMove, createChallenge, resignGame, drawGame, listenForMoves} from '../api/lichessAPI.js'
+import {
+    getLichessUserInfo,
+    getOngoingGames,
+    makeMove,
+    createChallenge,
+    resignGame,
+    drawGame,
+    listenForMoves,
+    cancelChallenge,
+    challengeAI
+} from '../api/lichessAPI.js'
+
 import { getChallenges, acceptChallenge, declineChallenge } from '../api/lichessAPI.js';
 import { Modal } from "../utils/general.js";
 
@@ -95,21 +106,8 @@ export async function renderLichess() {
             <div class="p-8 max-w-xl mx-auto bg-white rounded-lg shadow-lg">
                 ${renderProfileSection(profile)}
 
-                <h2 class="text-2xl font-bold mb-2 text-center">Challenge another player</h2>
-                <form id="challengePlayer" class="space-y-3 mb-8">
-                    <div>
-                        <label class="block text-gray-700 font-semibold mb-1" for="challengePlayerInput">Name</label>
-                        <input id="challengePlayerInput" type="text" class="w-full px-3 py-2 border rounded" placeholder="Enter username" required>
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
-                            Challenge
-                        </button>
-                    </div>
-                </form>
-
+                <div id="challengePlayersSection"></div>
                 <div id="challengesToAcceptSection" class="mb-8"></div>
-
                 <div id="lichessGamesSection">
                     <h3 class="text-xl font-bold mb-2">Ongoing Games</h3>
                     <div id="lichessGamesList" class="space-y-2"></div>
@@ -125,13 +123,19 @@ export async function renderLichess() {
     // Render incoming challenges
     await renderChallenges();
 
+    // Render outgoing challenges
+    await renderChallengePlayers();
 
     document.getElementById("challengePlayer")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const username = (document.getElementById("challengePlayerInput") as HTMLInputElement).value.trim();
         try {
-            await createChallenge(username);
+            if (username === "LichessAI")
+                await challengeAI();
+            else
+                await createChallenge(username);
             Modal.show("Challenge sent succesfully!");
+            await renderChallengePlayers();
         } catch (error: any) {
             Modal.show("Failed to send challenge: " + error.message);
         }
@@ -142,6 +146,80 @@ export async function renderLichess() {
         setCurrentView('viewUser');
         renderApp();
     }
+}
+
+async function renderChallengePlayers() {
+    // Fetch outgoing challenges
+    let outgoingChallenges: any[] = [];
+    try {
+        const result = await getChallenges();
+        outgoingChallenges = result.data.out || [];
+    } catch (error) {
+        // handle error or leave outgoingChallenges empty
+    }
+
+    let outgoingTable = '';
+    if (outgoingChallenges.length > 0) {
+        outgoingTable = `
+            <h3 class="text-xl font-bold mb-2">Outgoing Challenges</h3>
+            <table class="min-w-full divide-y divide-gray-200 mb-4">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Opponent</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rating</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Speed</th>
+                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${outgoingChallenges.map((challenge: any) => `
+                        <tr class="bg-white border-b">
+                            <td class="font-semibold text-center">${challenge.destUser.name}</td>
+                            <td class="font-semibold text-center">${challenge.destUser.rating ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">${challenge.speed ?? 'N/A'}</td>
+                            <td class="font-semibold text-center">
+                                <button class="cancel-challenge-btn bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded" data-challenge-id="${challenge.id}">Cancel</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+   const content = `
+        <h2 class="text-2xl font-bold mb-2 text-center">Challenge another player</h2>
+        <form id="challengePlayer" class="space-y-3 mb-8">
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1" for="challengePlayerInput">Name</label>
+                <input id="challengePlayerInput" type="text" class="w-full px-3 py-2 border rounded" placeholder="Enter username (or LichessAI to play against an AI)" required>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow">
+                    Challenge
+                </button>
+            </div>
+        </form>
+        ${outgoingTable}
+        `
+
+    // Render content
+    const container = document.getElementById('challengePlayersSection');
+    if (container) container.innerHTML = content;
+
+    // Attach cancel handlers
+    document.querySelectorAll('.cancel-challenge-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const challengeId = (e.currentTarget as HTMLElement).getAttribute('data-challenge-id');
+            try {
+                await cancelChallenge(challengeId!);
+                Modal.show("Challenge canceled.");
+                await renderLichess();
+            } catch (error: any) {
+                Modal.show("Failed to cancel challenge: " + error.message);
+            }
+        });
+    });
 }
 
 async function renderOngoingGames() {

@@ -56,27 +56,6 @@ export async function makeMove(gameId: string, source: string, target: string): 
 }
 
 
-export async function createChallenge(username: string): Promise<void> {
-    const response = await apiFetch(`${fastApiBaseUrl}/lichess/create_challenge/${username}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
-        }
-    });
-    if (!response.ok) {
-        const error = await response.json();
-        // Handle Pydantic validation errors (422)
-        if (error.detail && Array.isArray(error.detail)) {
-            // Combine all error messages
-            const messages = error.detail.map((e: any) => e.msg).join('; ');
-            throw new Error(messages);
-        }
-        throw new Error(error.detail || error.message || 'Failed to create the challenge.');
-    }
-}
-
-
 export async function resignGame(gameId: string): Promise<void> {
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/resign/${gameId}`, {
         method: 'POST',
@@ -171,6 +150,68 @@ export async function declineChallenge(challengeId: string): Promise<void> {
             throw new Error(messages);
         }
         throw new Error(error.detail || error.message || 'Failed to decline the challenge.');
+    }
+}
+
+export async function cancelChallenge(challengeId: string): Promise<void> {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/challenge/cancel/${challengeId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to cancel the challenge.');
+    }
+}
+
+
+export async function createChallenge(username: string): Promise<void> {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/challenge/create/${username}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to create the challenge.');
+    }
+}
+
+
+export async function challengeAI(): Promise<void> {
+    const response = await apiFetch(`${fastApiBaseUrl}/lichess/challenge/AI`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getToken()}`
+        }
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        // Handle Pydantic validation errors (422)
+        if (error.detail && Array.isArray(error.detail)) {
+            // Combine all error messages
+            const messages = error.detail.map((e: any) => e.msg).join('; ');
+            throw new Error(messages);
+        }
+        throw new Error(error.detail || error.message || 'Failed to challenge the LichessAI.');
     }
 }
 
