@@ -2,7 +2,8 @@ import { setToken, getRefreshToken} from '../state.js';
 import { handleLogout } from '../views/home.js';
 
 // --- FastAPI Configuration ---
-export const fastApiBaseUrl: string = 'http://localhost:8000/api/v1';
+// export const fastApiBaseUrl: string = 'http://localhost:8000/api/v1';
+export const fastApiBaseUrl: string = 'https://chessly-uamz.onrender.com/api/v1';
 
 export async function apiFetch(input: RequestInfo, init: RequestInit = {}, retry = true): Promise<Response> {
     let response = await fetch(input, init);
