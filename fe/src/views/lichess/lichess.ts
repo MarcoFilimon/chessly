@@ -72,9 +72,6 @@ export async function renderLichess() {
     //! Default to userInfo tab if not set
     if (!(window as any).lichessTab) (window as any).lichessTab = 'userInfo';
 
-    const counts = await getOngoingGames();
-    setNbOfOngoingGames(counts.data.nowPlaying.length || 0)
-
     appContent.innerHTML = `
         <div class="p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
             <div class="flex border-b mb-6 space-x-4">
@@ -86,6 +83,10 @@ export async function renderLichess() {
         </div>
     `;
 
-    await renderLichessTabContent();
     attachLichessTabListeners();
+
+    await renderLichessTabContent();
+
+    const counts = await getOngoingGames();
+    setNbOfOngoingGames(counts.data.nowPlaying.length || 0)
 }
