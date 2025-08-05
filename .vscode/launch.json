@@ -27,7 +27,8 @@
       "module": "fastapi",
       "args": ["dev", "src/main.py"],
       "jinja": true,
-      "python": "${workspaceFolder}/.venv/Scripts/python.exe"
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "cwd": "${workspaceFolder}/be"
     }
   ]
 }

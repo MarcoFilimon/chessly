@@ -14,6 +14,10 @@ import { renderOngoingGames } from './lichessGames.js'
 
 import { currentPollingCleanup } from '../../utils/lichessUtils.js';
 
+import { Modal } from "../../utils/general.js";
+import { setCurrentView } from "../../state.js";
+import { renderApp } from "../home.js";
+
 async function renderLichessTabContent() {
     const tab = (window as any).lichessTab;
     const container = document.getElementById('lichessTabContent');
@@ -29,8 +33,14 @@ async function renderLichessTabContent() {
     `;
 
     if (tab === 'userInfo') {
-        const profile = await getLichessUserInfo();
-        container.innerHTML = renderProfileSection(profile);
+        try {
+            const profile = await getLichessUserInfo();
+            container.innerHTML = renderProfileSection(profile);
+        } catch (error: any) {
+            Modal.show(error)
+            setCurrentView('viewUser')
+            renderApp()
+        }
     } else if (tab === 'userChallenges') {
         renderChallengeTab();
     } else if (tab === 'userGames') {

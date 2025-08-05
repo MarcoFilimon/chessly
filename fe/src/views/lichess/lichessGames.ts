@@ -251,6 +251,7 @@ function renderGameBoard(lichessGame: any) {
             position: game.fen(),
             orientation: lichessGame.color,
             draggable: true,
+            pieceTheme: 'img/chesspieces/wikipedia/{piece}.png',
             async onDrop(source: string, target: string) {
                 removeGreySquares();
                 const move = game.move({ from: source, to: target, promotion: 'q' });
