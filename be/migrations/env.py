@@ -19,11 +19,6 @@ def make_sync_url(async_url: str) -> str:
 # access to the values within the .ini file in use.
 config = context.config
 
-#! ----- NEON DB
-# sync_database_url = make_sync_url(Config.DATABASE_URL)
-# config.set_main_option('sqlalchemy.url', sync_database_url)
-
-
 #! ------ LOCAL DB
 sync_database_url = make_sync_url(Config.DATABASE_URL)
 config.set_main_option('sqlalchemy.url', sync_database_url)
