@@ -1,10 +1,7 @@
 import { setToken, getRefreshToken} from '../state.js';
 import { handleLogout } from '../views/home.js';
 
-// --- FastAPI Configuration ---
-// export const fastApiBaseUrl: string = 'http://localhost:8000/api/v1';
-export const fastApiBaseUrl: string = 'https://chessly-uamz.onrender.com/api/v1';
-
+export const fastApiBaseUrl: string = import.meta.env.VITE_API_BASE_URL;
 
 export async function apiFetch(input: RequestInfo, init: RequestInit = {}, retry = true): Promise<Response> {
     let response = await fetch(input, init);
