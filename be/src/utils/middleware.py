@@ -31,8 +31,11 @@ def register_middleware(app: FastAPI):
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"], # all origins can access our API
-        allow_methods=["*"], # what methods (like GET POST etc) can access our middleware
+        allow_origins=[
+            "https://chessly-lichess.netlify.app",
+            "http://localhost:5173",  # or your local dev port
+        ],
+        allow_methods=["*"],
         allow_headers=["*"],
         allow_credentials=True,
     )
