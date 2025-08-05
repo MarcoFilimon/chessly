@@ -125,19 +125,19 @@ async function handleSignup(e: Event): Promise<void> {
 export async function handleLogout(): Promise<void> {
     try {
         await logout();
-        setUserId(null);
-        localStorage.removeItem('chessTournamentUserId');
-        localStorage.removeItem('chessTournamentUsername');
-        localStorage.removeItem('chessTournamentRefreshToken');
-        localStorage.removeItem('chessTournamentToken');
-        localStorage.removeItem('chessTournamentEmail');
-        setTournaments([]);
-        setCurrentView('home');
-        renderApp(); // Re-render after logout
     } catch (error: any) {
-        console.error("Error logging out:", error);
-        Modal.show(`Logout failed: ${error.message}`);
+        // Ignore logout API errors
     }
+    setUserId(null);
+    localStorage.removeItem('chessTournamentUserId');
+    localStorage.removeItem('chessTournamentUsername');
+    localStorage.removeItem('chessTournamentRefreshToken');
+    localStorage.removeItem('chessTournamentToken');
+    localStorage.removeItem('chessTournamentEmail');
+    setTournaments([]);
+    setCurrentView('home');
+    renderApp();
+    window.location.reload();
 }
 
 function renderHome(): void {
