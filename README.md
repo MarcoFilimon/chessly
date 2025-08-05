@@ -29,8 +29,10 @@ Users can create and track their own tournaments, play chess games, and manage t
 - FastAPI
 - PostgreSQL
 - Redis
-- SQLModel
+- SQLModel / SQLAlchemy
+- Alembic
 - Celery
+- JWT tokens
 
 ---
 
@@ -47,7 +49,7 @@ Users can create and track their own tournaments, play chess games, and manage t
 
 1. **Go to the project directory:**
     ```bash
-    cd chessly
+    cd chessly/be
     ```
 
 2. **Create a virtual environment:**
@@ -110,17 +112,3 @@ Users can create and track their own tournaments, play chess games, and manage t
 - [chess.js](https://jhlywa.github.io/chess.js/)
 
 ---
-
-## Contributing
-
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
-
----
-
-## License
-
-[MIT](LICENSE)
-
----
-
-*Happy Chessing!*
