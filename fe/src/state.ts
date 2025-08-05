@@ -24,6 +24,8 @@ type View = 'home' | 'viewTournamentDetail' | 'viewTournamentPlayers' |
             'viewLichess';
 let _currentView: View = 'home'; // default is home
 
+let _nbOfOngoingGames: number = 0;
+
 
 // --- Getters and setters ---
 export function setUserId(id: string | null) {
@@ -88,6 +90,13 @@ export function setSelectedRoundIdx(roundIdx: number) {
 }
 export function getSelectedRoundIdx(): number {
     return _selectedRoundIdx;
+}
+
+export function setNbOfOngoingGames(nbOfGames: number) {
+    _nbOfOngoingGames = nbOfGames;
+}
+export function getNbOfOngoingGames(): number {
+    return _nbOfOngoingGames;
 }
 
 export function setPlayerSortColumn(sortBy: 'name' | 'rating') {

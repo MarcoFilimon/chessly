@@ -18,6 +18,9 @@ import { Modal } from "../../utils/general.js";
 import { setCurrentView } from "../../state.js";
 import { renderApp } from "../home.js";
 
+import { getOngoingGames } from "../../api/lichessAPI.js";
+import { setNbOfOngoingGames, getNbOfOngoingGames } from "../../state.js";
+
 async function renderLichessTabContent() {
     const tab = (window as any).lichessTab;
     const container = document.getElementById('lichessTabContent');
@@ -69,12 +72,15 @@ export async function renderLichess() {
     //! Default to userInfo tab if not set
     if (!(window as any).lichessTab) (window as any).lichessTab = 'userInfo';
 
+    const counts = await getOngoingGames();
+    setNbOfOngoingGames(counts.data.nowPlaying.length || 0)
+
     appContent.innerHTML = `
         <div class="p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
             <div class="flex border-b mb-6 space-x-4">
                 <button id="userInfo" class="${tabBase} ${(window as any).lichessTab === 'userInfo' ? tabActive : tabInactive}">Profile</button>
                 <button id="userChallenges" class="${tabBase} ${(window as any).lichessTab === 'userChallenges' ? tabActive : tabInactive}">Challenges</button>
-                <button id="userGames" class="${tabBase} ${(window as any).lichessTab === 'userGames' ? tabActive : tabInactive}">Games</button>
+                <button id="userGames" class="${tabBase} ${(window as any).lichessTab === 'userGames' ? tabActive : tabInactive}">Games (${getNbOfOngoingGames()})</button>
             </div>
             <div id="lichessTabContent"></div>
         </div>
