@@ -179,7 +179,6 @@ async function renderChallengePlayers() {
 }
 
 export async function renderChallengeTab() {
-    // const tab = (window as any).lichessTab;
     const container = document.getElementById('lichessTabContent');
     if (!container) return;
 

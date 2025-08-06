@@ -45,7 +45,7 @@ async function renderLichessTabContent() {
             renderApp()
         }
     } else if (tab === 'userChallenges') {
-        renderChallengeTab();
+        await renderChallengeTab();
     } else if (tab === 'userGames') {
         await renderOngoingGames();
     }
@@ -72,8 +72,15 @@ export async function renderLichess() {
     //! Default to userInfo tab if not set
     if (!(window as any).lichessTab) (window as any).lichessTab = 'userInfo';
 
-    const counts = await getOngoingGames();
-    setNbOfOngoingGames(counts.data.nowPlaying.length || 0)
+    try {
+        const counts = await getOngoingGames();
+        setNbOfOngoingGames(counts.data.nowPlaying.length || 0)
+    }
+    catch (error: any) {
+        Modal.show(error)
+        setCurrentView('viewUser')
+        renderApp()
+    }
 
     appContent.innerHTML = `
         <div class="p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-lg">

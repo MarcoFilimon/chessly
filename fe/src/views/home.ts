@@ -310,7 +310,7 @@ function renderHeaderButtons(): void {
                 Tournaments
             </button>
             <button id="viewLichess" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
-                Lichess
+                Play
             </button>
             <button id="viewUser" class="text-gray-700 hover:text-blue-600 font-medium transition duration-200">
                 ${getUserUsername()}
