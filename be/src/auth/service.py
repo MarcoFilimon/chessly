@@ -13,7 +13,7 @@ from src.utils.celery_tasks import send_email
 class UserService:
     async def send_verification_email(self, user: User):
         token = create_url_safe_token({"email": user.email})
-        link = f"http://{Config.DOMAIN}/api/v1/auth/verify/{token}"
+        link = f"{Config.DOMAIN}/api/v1/auth/verify/{token}"
         html = f"""
         <h1>Verify your Email</h1>
         <p>Please click this <a href="{link}">link</a> to verify your email</p>
