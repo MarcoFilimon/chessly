@@ -210,3 +210,19 @@ async def send_mail(
     # send_email.delay(email_addresses, subject, html)
     await send_email(email_addresses, subject, html)
     return {"message": "Email has been sent succesfully."}
+
+
+@router.get("/keep-alive")
+async def keep_database_active(session: AsyncSession = Depends(db.get_session)):
+    """
+    This endpoint performs a simple query to keep the Neon database active.
+    It returns a 200 status code if the connection is successful.
+    """
+    from sqlmodel import select
+    from fastapi import HTTPException
+    try:
+        # A simple query that doesn't modify data, just to prove a connection is live.
+        await session.exec(select(1))
+        return {"status": "Database is active"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect to database: {e}")
