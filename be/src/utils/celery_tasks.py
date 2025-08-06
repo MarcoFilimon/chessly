@@ -1,13 +1,14 @@
-from celery import Celery
-from asgiref.sync import async_to_sync
+# from celery import Celery
+# from asgiref.sync import async_to_sync
 from .mail import create_message, mail
 
-c_app = Celery()
-c_app.config_from_object("src.utils.config")
+# c_app = Celery()
+# c_app.config_from_object("src.utils.config")
 
 
-@c_app.task()
-def send_email(email_recipients: list[str], subject: str, html: str):
+# @c_app.task()
+# def send_email(email_recipients: list[str], subject: str, html: str):
+async def send_email(email_recipients: list[str], subject: str, html: str):
     '''
     Send emails using celery tasks
     '''
@@ -16,4 +17,5 @@ def send_email(email_recipients: list[str], subject: str, html: str):
         subject=subject,
         body=html
     )
-    async_to_sync(mail.send_message)(message)
+    await mail.send_message(message)
+    # async_to_sync(mail.send_message)(message)

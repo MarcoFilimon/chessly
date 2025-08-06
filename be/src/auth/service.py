@@ -20,7 +20,8 @@ class UserService:
         """
         emails = [user.email]
         subject = "Verify Your email"
-        send_email.delay(emails, subject, html)
+        # send_email.delay(emails, subject, html)
+        await send_email(emails, subject, html)
 
     async def get_user(self, user_id: int, session: AsyncSession):
         user = await session.get(User, user_id)
@@ -136,6 +137,7 @@ class UserService:
         emails = [payload.email]
         subject = "Reset your password"
 
-        send_email.delay(emails, subject, html)
+        # send_email.delay(emails, subject, html)
+        send_email(emails, subject, html)
         return
 

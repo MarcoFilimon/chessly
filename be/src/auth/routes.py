@@ -194,3 +194,19 @@ async def reset_password(
         content={"message": "Error occured during password reset."},
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     )
+
+@router.post('/send_mail')
+async def send_mail(
+    emails: Emails,
+    _ : bool = Depends(full_access)
+):
+    '''
+    Simple endpoint to send an email. Just a generic endpoint, nothing more
+    '''
+    from src.utils.celery_tasks import send_email
+    email_addresses = emails.adresses
+    html = "<h1>Welcome to the app.</h1>"
+    subject = "Welcome"
+    # send_email.delay(email_addresses, subject, html)
+    await send_email(email_addresses, subject, html)
+    return {"message": "Email has been sent succesfully."}
