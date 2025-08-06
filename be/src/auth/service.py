@@ -117,7 +117,7 @@ class UserService:
             if "password" in updated_data:
                 user.hashed_pass = Hash.bcrypt(updated_data["password"])
 
-            if "lichess_token" in updated_data:
+            if "lichess_token" in updated_data and updated_data["lichess_token"] is not None and updated_data["lichess_token"] != '':
                 user.lichess_token = encrypt_lichess_token(updated_data["lichess_token"])
 
             await session.commit()

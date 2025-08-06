@@ -48,9 +48,9 @@ class User(UserBase):
     created_at: datetime
 
 
-class UserLogIn(BaseModel):
-    username: str = Field(min_length=3, max_length=10)
-    password: str | None = Field(min_length=3)
+class UserLogIn(UserValidatorMixin):
+    username: str
+    password: str | None = None
 
 
 class Emails(BaseModel):

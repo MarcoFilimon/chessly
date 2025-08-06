@@ -90,6 +90,9 @@ export async function renderViewUser(): Promise<void> {
             last_name,
             lichess_token
         };
+        if (lichess_token) {
+            newUserData.lichess_token = lichess_token;
+        }
         if (password) {
             newUserData.password = password;
         }
