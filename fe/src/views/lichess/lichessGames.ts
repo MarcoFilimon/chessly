@@ -4,7 +4,7 @@ import { Chess } from 'chess.js';
 import { Modal } from "../../utils/general.js";
 
 import { setCurrentView } from '../../state.js';
-import { renderApp } from '../home.js';
+// import { renderApp } from '../home.js';
 
 import {
     getOngoingGames,
@@ -211,7 +211,7 @@ function startListeningForMoves(lichessGame: any, game: any, board: any) {
             } else {
                 Modal.show(`Game ended: ${status}`);
             }
-            renderApp();
+            // renderApp();
         }
     });
 
