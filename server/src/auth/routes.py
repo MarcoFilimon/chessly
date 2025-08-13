@@ -10,6 +10,7 @@ from .utils import create_token, decode_url_safe_token, Hash
 from src.db import redis
 from src.utils.errors import UserNotFound, NewPasswordsException, PasswordResetRequestTimeout
 from datetime import datetime, timedelta
+from src.utils.celery_tasks import send_email, long_task
 
 from .dependencies import (
     AccessTokenBearer,
@@ -205,7 +206,6 @@ async def send_mail(
     '''
     Simple endpoint to send an email. Just a generic endpoint, nothing more
     '''
-    from src.utils.celery_tasks import send_email
     email_addresses = emails.adresses
     html = "<h1>Welcome to the app.</h1>"
     subject = "Welcome"
@@ -228,3 +228,27 @@ async def keep_database_active(session: AsyncSession = Depends(db.get_session)):
         return {"status": "Database is active"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to connect to database: {e}")
+
+
+@router.post("/start-long-task")
+async def start_long_task(payload: WebhookPayload):
+    '''
+    Just a test endpoint. I call this from Insomnia.
+    In a real case scenario, a real endpoint would call long_task directly
+    '''
+    long_task.delay(payload.webhook_url)
+    return {"message": "Task started"}
+
+
+@router.post("/webhook-callback")
+async def webhook_callback(payload: dict):
+    '''
+    Callback endpoint used by Celery when the task has been finished.
+    '''
+    print("Webhook processed.")
+    return JSONResponse(
+        content={
+            "message": "Webhook processed"
+        },
+        status_code=status.HTTP_200_OK
+    )
