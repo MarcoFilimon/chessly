@@ -124,7 +124,9 @@ async def delete_user(
     return await service.delete_user(user_id, session)
 
 
-@router.put('/{user_id}', response_model=User, status_code=status.HTTP_200_OK)
+#? Why accept user_id here? Well, if you only want users to update themselves, you don't need it.
+#? But you want also admins to update any users, you need the ID to know WHAT user to update.
+@router.patch('/{user_id}', response_model=User, status_code=status.HTTP_200_OK)
 async def update_user(
     user_id: int,
     payload: UserUpdate,

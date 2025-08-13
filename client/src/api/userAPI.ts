@@ -20,7 +20,7 @@ export async function fetchProfile() : Promise<User> {
 
 export async function updateProfile(newUserData: UserUpdate) : Promise<User> {
     const response = await apiFetch(`${fastApiBaseUrl}/auth/${getUserId()}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${getToken()}`
