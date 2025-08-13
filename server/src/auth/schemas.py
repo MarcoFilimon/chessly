@@ -63,3 +63,6 @@ class PasswordResetRequest(BaseModel):
 class PasswordReset(BaseModel):
     new_password: str
     confirmed_new_password: str
+
+class WebhookPayload(BaseModel):
+    webhook_url: str

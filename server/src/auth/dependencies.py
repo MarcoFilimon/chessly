@@ -63,7 +63,7 @@ async def get_current_user(
 ):
     '''
     Get currently logged in user, based on access token.
-    The endpoint that will call this needs to have a bearer token attached.
+    Any endpoint with a dependency to this has to receive the Authorization Token in the header
     '''
     user_id = token_details['user_id']
     user = await service.get_user(user_id, session)

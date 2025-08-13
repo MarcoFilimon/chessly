@@ -1,5 +1,4 @@
 from fastapi import status, APIRouter, Depends
-from fastapi.responses import JSONResponse
 from .schemas import *
 from src.utils.config import version
 from .service import PlayerService
@@ -39,7 +38,7 @@ async def create_player(
     return player
 
 
-@router.put('/{id}', status_code=status.HTTP_200_OK, response_model=Player)
+@router.patch('/{id}', status_code=status.HTTP_200_OK, response_model=Player)
 async def update_player(
   id: int,
   payload: PlayerUpdate,

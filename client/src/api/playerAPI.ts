@@ -64,7 +64,7 @@ export async function deleteAllPlayers(currentTournamentId: number): Promise<voi
 
 export async function updatePlayer(payload: PlayerUpdate, playerId: number): Promise<void> {
     const response = await apiFetch(`${fastApiBaseUrl}/player/${playerId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${getToken()}`
