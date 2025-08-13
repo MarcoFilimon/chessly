@@ -6,6 +6,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db import db
 from src.db.models import User
 from src.db.redis import *
+from src.auth.utils import discord_webhook
 import json
 
 
@@ -38,6 +39,7 @@ async def create_tournament(
     '''
     await invalidate_user_tournaments_cache(user.id)
     tournament = await service.create_tournament(payload, user.id, session)
+    payload = {"content": f"Tournament {tournament.name} has ended. Winner is...."}
     return tournament
 
 
@@ -170,6 +172,8 @@ async def end_tournament(
     await invalidate_user_tournaments_cache(user.id, status="Ongoing")
     await invalidate_user_tournaments_cache(user.id, status="Finished") # invalidate also finished because this just became one
     tournament = await service.end_tournament(id, session)
+    winner_info = await service.get_tournament_winner(tournament)
+    await discord_webhook(tournament, winner_info)
     return tournament
 
 

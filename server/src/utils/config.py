@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     ADMIN_SECRET: str
     REDIS_URL: str
     LICHESS_KEY: str
+    DISCORD_WEBHOOK_URL: str
 
     MAIL_USERNAME: str
     MAIL_PASSWORD: str

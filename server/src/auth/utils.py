@@ -7,6 +7,7 @@ import uuid
 from itsdangerous import URLSafeTimedSerializer
 import tzlocal
 from cryptography.fernet import Fernet, InvalidToken
+import httpx
 
 
 from src.utils.errors import *
@@ -84,3 +85,13 @@ def decrypt_lichess_token(encrypted_token: str) -> str:
     except Exception as e:
         print("Fernet decryption error:", e)
         raise
+
+from src.db.models import Tournament
+async def discord_webhook(tournament: Tournament, winner_info: dict):
+    '''
+    Send a message to discord channel with the winner of tournament.
+    '''
+    name_score = f"{winner_info['winner']['name']} ({winner_info['score']}/{len(tournament.rounds)})"
+    payload = {"content": f"🏆 Tournament '{tournament.name}' has ended. Winner: {name_score}."}
+    async with httpx.AsyncClient() as client:
+        await client.post(Config.DISCORD_WEBHOOK_URL, json=payload)

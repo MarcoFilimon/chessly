@@ -277,3 +277,34 @@ class TournamentService:
         rows = result.all()
         # Convert to dict: {status_value: count}
         return {status: count for status, count in rows}
+
+
+    async def get_tournament_winner(self, tournament: Tournament) -> dict:
+        '''
+        Calculates the winner(s) of the tournament based on matchup results.
+        Returns a dict: {player_id: points}
+        '''
+        scores = {}
+        for player in tournament.players:
+            scores[player.id] = 0
+
+        for round_obj in tournament.rounds:
+            for matchup in round_obj.matchups:
+                # Score table: win=1, draw=0.5, loss=0
+                if matchup.result == Result.WHITE_WINS:
+                    scores[matchup.white_player_id] += 1
+                elif matchup.result == Result.BLACK_WINS:
+                    scores[matchup.black_player_id] += 1
+                elif matchup.result == Result.DRAW:
+                    scores[matchup.white_player_id] += 0.5
+                    scores[matchup.black_player_id] += 0.5
+
+        # Find the highest score
+        max_score = max(scores.values())
+        # generator expression
+        winner_id = next(pid for pid, pts in scores.items() if pts == max_score)
+        winner_obj = next(p for p in tournament.players if p.id == winner_id)
+        return {
+            "winner": winner_obj.model_dump(mode="json"),
+            "score": max_score
+        }
