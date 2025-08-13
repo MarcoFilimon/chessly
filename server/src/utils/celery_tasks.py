@@ -1,9 +1,11 @@
-# from celery import Celery
-# from asgiref.sync import async_to_sync
+from celery import Celery
+from asgiref.sync import async_to_sync
 from .mail import create_message, mail
+import requests
+import time
 
-# c_app = Celery()
-# c_app.config_from_object("src.utils.config")
+c_app = Celery()
+c_app.config_from_object("src.utils.config")
 
 
 # @c_app.task()
@@ -19,3 +21,14 @@ async def send_email(email_recipients: list[str], subject: str, html: str):
     )
     await mail.send_message(message)
     # async_to_sync(mail.send_message)(message)
+
+
+@c_app.task()
+def long_task(webhook_url: str):
+    time.sleep(5) # simulate long running task
+
+    payload = {"status": "completed", "result": "Task finished successfully"}
+    try:
+        requests.post(webhook_url, json=payload)
+    except Exception as e:
+        print(f"Webhook failed: {e}")
