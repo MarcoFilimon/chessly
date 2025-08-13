@@ -8,8 +8,8 @@
       "name": "Debug FE (Firefox)",
       "type": "firefox",
       "request": "launch",
-      "url": "http://localhost:8000/fe/index.html",
-      "webRoot": "${workspaceFolder}/fe",
+      "url": "http://localhost:8000/client/index.html",
+      "webRoot": "${workspaceFolder}/client",
       "reloadOnAttach": true
     },
     {
@@ -17,7 +17,7 @@
       "type": "firefox",
       "request": "launch",
       "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/fe",
+      "webRoot": "${workspaceFolder}/client",
       "reloadOnAttach": true
     },
     {
@@ -28,7 +28,7 @@
       "args": ["dev", "src/main.py"],
       "jinja": true,
       "python": "${workspaceFolder}/.venv/Scripts/python.exe",
-      "cwd": "${workspaceFolder}/be"
+      "cwd": "${workspaceFolder}/server"
     }
   ]
 }

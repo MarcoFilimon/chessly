@@ -112,3 +112,28 @@ Users can create and track their own tournaments, play chess games, and manage t
 - [chess.js](https://jhlywa.github.io/chess.js/)
 
 ---
+
+## Integrations
+
+### Discord Webhook Notifications
+
+Chessly can send automated notifications to a Discord channel when key events occur (e.g., when a tournament ends and a winner is determined).
+
+To enable Discord notifications:
+
+1. **Create a Discord webhook:**
+   - Go to your Discord server settings → Channel settings → Integrations → Webhooks.
+   - Click "New Webhook", copy the webhook URL.
+
+2. **Configure the webhook URL:**
+   - Set your Discord webhook URL in the backend configuration's `.env`
+
+3. **How it works:**
+   - When a tournament ends, Chessly sends a message to the configured Discord channel announcing the winner.
+
+**Example webhook payload:**
+```json
+{
+  "content": "🏆 Tournament 'Spring Open' has ended! Winner: Andrei (Score: 3.5/5)"
+}
+```
