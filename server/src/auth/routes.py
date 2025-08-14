@@ -84,12 +84,19 @@ async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer(
     # If refresh token NOT expired (its datetime is higher than the current datetime) -> generate new access token
     if datetime.fromtimestamp(expiry_timestamp) > datetime.now():
         new_access_token = create_token({"username": token_details['username'], "role": token_details['role'], "user_id": token_details['user_id']}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY))
-        return JSONResponse(
-            content={
-                "access_token": new_access_token
-            },
+        response = JSONResponse(
+            content={"access_token": new_access_token},
             status_code=status.HTTP_200_OK
         )
+        response.set_cookie(
+            key="chessTournamentToken",
+            value=new_access_token,
+            httponly=True,
+            secure=False,  # Set to True in production!
+            samesite="strict",
+            max_age=Config.ACCESS_TOKEN_EXPIRY * 3600
+        )
+        return response
     raise InvalidToken()
 
 
@@ -110,7 +117,12 @@ async def logout(token_details: dict = Depends(AccessTokenBearer())):
     '''
     jti = token_details["jti"]
     await redis.add_jti_to_blocklist(jti)
-    return {"message": "Logged Out successfully."}
+    response = JSONResponse(content={"message": "Logged Out successfully."})
+    response.delete_cookie("chessTournamentToken")
+    response.delete_cookie("chessTournamentRefreshToken")
+    response.delete_cookie("chessTournamentUsername")
+    response.delete_cookie("chessTournamentUserId")
+    return response
 
 
 @router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
@@ -139,7 +151,15 @@ async def update_user(
     Update user (only admin or current user can do it.)
     '''
     user = await service.update_user(user_id, payload, session, current_user)
-    return user
+    response = JSONResponse(content={"message": "Profile updated!", "user": user})
+    response.set_cookie(
+        key="chessTournamentUsername",
+        value=user.username,
+        httponly=False,
+        secure=False,
+        samesite="strict"
+    )
+    return response
 
 
 @router.get('/verify/{token}', status_code=status.HTTP_200_OK)

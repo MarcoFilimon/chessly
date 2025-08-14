@@ -110,7 +110,6 @@ export async function renderViewUser(): Promise<void> {
             const updatedUser = await updateProfile(newUserData);
             Modal.show("Profile updated successfully!");
             setUserUsername(updatedUser.username);
-            localStorage.setItem('chessTournamentUsername', updatedUser.username);
             renderViewUser();
         } catch (error: any) {
             Modal.show("Failed to update profile: " + error.message);

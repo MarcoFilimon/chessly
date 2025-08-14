@@ -1,5 +1,4 @@
 import { fastApiBaseUrl, apiFetch } from './utilsAPI.js'
-import { getToken } from '../state.js';
 
 import { Chess } from 'chess.js'; // Make sure you have chess.js imported
 
@@ -7,7 +6,6 @@ export async function getLichessUserInfo(): Promise<any> {
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/`, {
         headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -22,7 +20,6 @@ export async function getOngoingGames(): Promise<any> {
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/ongoing_games`, {
         headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -39,7 +36,6 @@ export async function makeMove(gameId: string, source: string, target: string): 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify({gameId, move})
     });
@@ -61,7 +57,6 @@ export async function resignGame(gameId: string): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -82,7 +77,6 @@ export async function drawGame(gameId: string): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -101,7 +95,6 @@ export async function getChallenges(): Promise<any> {
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/challenges`, {
         headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -117,7 +110,6 @@ export async function acceptChallenge(challengeId: string): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -138,7 +130,6 @@ export async function declineChallenge(challengeId: string): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -158,7 +149,6 @@ export async function cancelChallenge(challengeId: string): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -179,7 +169,6 @@ export async function createChallenge(username: string): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -200,7 +189,6 @@ export async function challengeAI(): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -258,7 +246,6 @@ export async function getSseToken(): Promise<string> {
     const response = await apiFetch(`${fastApiBaseUrl}/lichess/sse_token`, {
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) throw new Error('Failed to get SSE token');

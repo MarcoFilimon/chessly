@@ -40,17 +40,41 @@ class TokenBearer(HTTPBearer):
         raise NotImplementedError("Please override this method in child classes.")
 
 
-class AccessTokenBearer(TokenBearer):
+class CookieTokenBearer:
     '''
-    Child class of TokenBearer. Validates token
+    Dependency to extract token from cookies.
+    '''
+    def __init__(self, cookie_name: str = "chessTournamentToken"):
+        self.cookie_name = cookie_name
+
+    async def __call__(self, request: Request) -> dict:
+        token = request.cookies.get(self.cookie_name)
+        if not token:
+            raise InvalidToken()
+        token_data = decode_token(token)
+        if token_data is None:
+            raise InvalidToken()
+        if await token_in_blocklist(token_data["jti"]):
+            raise InvalidToken()
+        self.verify_token_data(token_data)
+        return token_data
+
+    def verify_token_data(self, token_data):
+        raise NotImplementedError("Please override this method in child classes.")
+
+
+
+class AccessTokenBearer(CookieTokenBearer):
+    '''
+    Child class of CookieTokenBearer. Validates token
     '''
     def verify_token_data(self, token_data: dict) -> None:
         if token_data and token_data["refresh"]:
-            raise AccessTokenBearer()
+            raise AccessTokenRequired()
 
-class RefreshTokenBearer(TokenBearer):
+class RefreshTokenBearer(CookieTokenBearer):
     '''
-    Child class of TokenBearer. Validates refresh token
+    Child class of CookieTokenBearer. Validates refresh token
     '''
     def verify_token_data(self, token_data: dict) -> None:
         if token_data and not token_data["refresh"]:

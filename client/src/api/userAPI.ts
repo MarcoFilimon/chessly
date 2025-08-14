@@ -1,4 +1,4 @@
-import { getToken, getUserId} from '../state.js';
+import { getUserId} from '../state.js';
 import { type UserUpdate, type User } from '../types.js';
 import {fastApiBaseUrl, apiFetch} from './utilsAPI.js'
 
@@ -8,7 +8,6 @@ export async function fetchProfile() : Promise<User> {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
     });
     if (!response.ok) {
@@ -23,7 +22,6 @@ export async function updateProfile(newUserData: UserUpdate) : Promise<User> {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify(newUserData)
     });

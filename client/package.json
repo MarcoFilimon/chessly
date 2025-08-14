@@ -9,13 +9,15 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
   },
   "dependencies": {
-    "chess.js": "^1.4.0"
+    "chess.js": "^1.4.0",
+    "js-cookie": "^3.0.5"
   },
   "engines": {
     "node": ">=18"
-}
+  }
 }

@@ -1,4 +1,3 @@
-import { getToken} from '../state.js';
 import { type User } from '../types.js';
 import {fastApiBaseUrl, apiFetch} from './utilsAPI.js'
 
@@ -42,7 +41,6 @@ export async function logout(): Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
 }
@@ -52,7 +50,6 @@ export async function sendVerificationEmail() : Promise<void> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {

@@ -1,12 +1,12 @@
 import { homeBtn, logoHome, modalCloseBtn } from "./dom.js";
 import { Modal } from "./utils/general.js";
 import { renderApp } from "./views/home.js";
+import Cookies from 'js-cookie'
 
 import {
     setCurrentView,
     setUserUsername,
     setUserId,
-    setUserEmail,
     setToken,
     setRefreshToken,
 } from './state.js'
@@ -24,14 +24,9 @@ function attachGlobalEvents() {
 }
 
 window.onload = function() {
-    setUserId(localStorage.getItem('chessTournamentUserId'));
-    setUserUsername(localStorage.getItem('chessTournamentUsername'));
-    setUserEmail(localStorage.getItem('chessTournamentEmail'));
-    setRefreshToken(localStorage.getItem('chessTournamentRefreshToken'));
-    setToken(localStorage.getItem('chessTournamentToken'));
-
+    setUserId(Cookies.get('chessTournamentUserId')!);
+    setUserUsername(Cookies.get('chessTournamentUsername')!);
     renderApp();
-
 
     // To be implemented properly.
     const urlParams = new URLSearchParams(window.location.search);

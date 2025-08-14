@@ -1,4 +1,4 @@
-import { getToken, getSelectedRoundIdx} from '../state.js';
+import { getSelectedRoundIdx} from '../state.js';
 import { type Tournament, type MatchupResult} from '../types.js';
 import {fastApiBaseUrl, apiFetch} from './utilsAPI.js'
 
@@ -8,7 +8,6 @@ export async function createTournament(payload: Partial<Tournament>): Promise<To
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify(payload)
     });
@@ -34,7 +33,6 @@ export async function fetchTournaments(statusFilter: string): Promise<Tournament
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
     });
     if (!response.ok) {
@@ -49,7 +47,6 @@ export async function fetchTournament(tournamentId: number): Promise<Tournament>
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
     });
     if (!response.ok) {
@@ -68,7 +65,6 @@ export async function deleteTournament(tournamentId: string, statusTournament: s
     const response = await apiFetch(url.toString(), {
         method: 'DELETE',
         headers: {
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -83,7 +79,6 @@ export async function batchUpdatePlayerResults(currentTournamentId: number, resu
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify({ results })
     });
@@ -99,7 +94,6 @@ export async function startTournament(currentTournamentId: number): Promise<void
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -119,7 +113,6 @@ export async function endTournament(currentTournament: Tournament, statusTournam
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -134,7 +127,6 @@ export async function updateTournament(currentTournament: Tournament): Promise<v
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify(currentTournament)
     });
@@ -150,7 +142,6 @@ export async function generatePlayers(currentTournamentId: number): Promise<void
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         }
     });
     if (!response.ok) {
@@ -166,7 +157,6 @@ export async function fetchTournamentCounts(): Promise<{ [status: string]: numbe
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
     });
     if (!response.ok) throw new Error('Failed to fetch tournament counts');

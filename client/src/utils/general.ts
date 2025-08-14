@@ -25,3 +25,10 @@ export function formatDate(dateStr: string): string {
     return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
 }
 
+// If local development, have it return True so i can set !True for secure cookies
+export function isLocalhost(): boolean {
+    return (
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1"
+    );
+}

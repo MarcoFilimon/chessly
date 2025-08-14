@@ -6,12 +6,9 @@ import {
     setUserId,
     getUserId,
     setUserEmail,
-    getUserEmail,
     setToken,
-    getToken,
     setTournaments,
     setRefreshToken,
-    getRefreshToken,
     setFirstName,
     setLastName
 } from '../state.js'
@@ -48,6 +45,8 @@ import { renderLichess } from './lichess/lichess.js'
 
 import { getCurrentPollingCleanup, setCurrentPollingCleanup } from '../utils/lichessUtils.js';
 
+import Cookies from 'js-cookie'
+
 async function handleLogin(e: Event): Promise<void> {
     e.preventDefault();
     const usernameInput = document.getElementById('loginUsername') as HTMLInputElement;
@@ -64,11 +63,6 @@ async function handleLogin(e: Event): Promise<void> {
         setUserEmail(userData.user.email);
         setFirstName(userData.user.first_name);
         setLastName(userData.user.last_name)
-        localStorage.setItem('chessTournamentUserId', getUserId() as string);
-        localStorage.setItem('chessTournamentUsername', getUserUsername() as string);
-        localStorage.setItem('chessTournamentEmail', getUserEmail() as string);
-        localStorage.setItem('chessTournamentRefreshToken', getRefreshToken() as string);
-        localStorage.setItem('chessTournamentToken', getToken() as string);
         setCurrentView('home');
         renderApp(); // Re-render after login
 
@@ -129,11 +123,10 @@ export async function handleLogout(): Promise<void> {
         // Ignore logout API errors
     }
     setUserId(null);
-    localStorage.removeItem('chessTournamentUserId');
-    localStorage.removeItem('chessTournamentUsername');
-    localStorage.removeItem('chessTournamentRefreshToken');
-    localStorage.removeItem('chessTournamentToken');
-    localStorage.removeItem('chessTournamentEmail');
+    Cookies.remove('chessTournamentUserId')
+    Cookies.remove('chessTournamentUsername')
+    Cookies.remove('chessTournamentRefreshToken')
+    Cookies.remove('chessTournamentToken')
     setTournaments([]);
     setCurrentView('home');
     renderApp();

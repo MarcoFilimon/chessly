@@ -1,4 +1,3 @@
-import { getToken} from '../state.js';
 import { type Player, type PlayerUpdate} from '../types.js';
 import {fastApiBaseUrl, apiFetch} from './utilsAPI.js'
 
@@ -18,7 +17,6 @@ export async function addPlayerToTournament(payload: Partial<Player>): Promise<P
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify({ name, rating })
     });
@@ -38,10 +36,7 @@ export async function addPlayerToTournament(payload: Partial<Player>): Promise<P
 
 export async function deletePlayer(playerId: string): Promise<void> {
     const response = await apiFetch(`${fastApiBaseUrl}/player/${playerId}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${getToken()}`
-        }
+        method: 'DELETE'
     });
     if (!response.ok) {
         const error = await response.json();
@@ -51,10 +46,7 @@ export async function deletePlayer(playerId: string): Promise<void> {
 
 export async function deleteAllPlayers(currentTournamentId: number): Promise<void> {
     const response = await apiFetch(`${fastApiBaseUrl}/player/tournament/${currentTournamentId}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${getToken()}`
-        }
+        method: 'DELETE'
     });
     if (!response.ok) {
         const error = await response.json();
@@ -67,7 +59,6 @@ export async function updatePlayer(payload: PlayerUpdate, playerId: number): Pro
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getToken()}`
         },
         body: JSON.stringify(payload)
     });

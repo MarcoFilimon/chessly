@@ -67,7 +67,7 @@ class UserService:
             raise InvalidCredentials()
         token = create_token({"username": username, "role": user.role, "user_id": user.id}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY))
         refresh_token = create_token({"username": username, "role": user.role, "user_id": user.id}, expiry=timedelta(hours=Config.REFRESH_TOKEN_EXPIRY), refresh=True)
-        return JSONResponse(
+        response = JSONResponse(
             content={
                 "message": "Login successful.",
                 "user": {
@@ -82,6 +82,24 @@ class UserService:
                 "refresh_token": refresh_token
             }
         )
+        # Set HttpOnly cookies for tokens
+        response.set_cookie(
+            key="chessTournamentToken",
+            value=token,
+            httponly=True,
+            secure=False,
+            samesite="strict",
+            max_age=Config.ACCESS_TOKEN_EXPIRY * 3600  # expiry in seconds
+        )
+        response.set_cookie(
+            key="chessTournamentRefreshToken",
+            value=refresh_token,
+            httponly=True,
+            secure=False,
+            samesite="strict",
+            max_age=Config.REFRESH_TOKEN_EXPIRY * 3600
+        )
+        return response
 
     async def delete_user(self, user_id: int, session: AsyncSession):
         user = await self.get_user(user_id, session)
