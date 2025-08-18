@@ -26,7 +26,7 @@ export async function createTournament(payload: Partial<Tournament>): Promise<To
 }
 
 export async function fetchTournaments(statusFilter: string): Promise<Tournament[]> {
-    const url = new URL(`${fastApiBaseUrl}/tournament`);
+    const url = new URL(`${fastApiBaseUrl}/tournament/`);
     if (statusFilter) {
         url.searchParams.append('status', statusFilter);
     }

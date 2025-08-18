@@ -1,9 +1,8 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from datetime import datetime
-from src.db.models import Tournament
-
 
 class UserValidatorMixin(BaseModel):
+    # do not to check if the field exists on the model before applying the validator.
     @field_validator("username", check_fields=False)
     def name_length(cls, v):
         if v is None:

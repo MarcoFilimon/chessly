@@ -8,9 +8,8 @@ c_app = Celery()
 c_app.config_from_object("src.utils.config")
 
 
-# @c_app.task()
-# def send_email(email_recipients: list[str], subject: str, html: str):
-async def send_email(email_recipients: list[str], subject: str, html: str):
+@c_app.task()
+def send_email(email_recipients: list[str], subject: str, html: str):
     '''
     Send emails using celery tasks
     '''
@@ -19,8 +18,7 @@ async def send_email(email_recipients: list[str], subject: str, html: str):
         subject=subject,
         body=html
     )
-    await mail.send_message(message)
-    # async_to_sync(mail.send_message)(message)
+    async_to_sync(mail.send_message)(message)
 
 
 @c_app.task()

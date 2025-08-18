@@ -1,14 +1,12 @@
 from fastapi import status, APIRouter, Depends
 from fastapi.responses import JSONResponse
 from .schemas import *
-from src.utils.config import version, Config
+from src.utils.config import version
 from .service import UserService
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db import db
-from datetime import datetime
-from .utils import create_token, decode_url_safe_token, Hash
+from .utils import decode_url_safe_token, Hash
 from src.db import redis
-from datetime import datetime, timedelta
 from src.utils.celery_tasks import send_email, long_task
 
 from .dependencies import (
@@ -19,7 +17,6 @@ from .dependencies import (
 )
 
 from src.utils.errors import (
-    InvalidToken,
     UserNotFound,
     NewPasswordsException,
     PasswordResetRequestTimeout
@@ -84,17 +81,8 @@ async def refresh_access_token(token_details: dict = Depends(RefreshTokenBearer(
     Generate a new access token based on the refresh token.
     Refresh token expires in 2 days compared with 1h for access.
     '''
-    expiry_timestamp = token_details["exp"]
-    # If refresh token NOT expired (its datetime is higher than the current datetime) -> generate new access token
-    if datetime.fromtimestamp(expiry_timestamp) > datetime.now():
-        new_access_token = create_token({"username": token_details['username'], "role": token_details['role'], "user_id": token_details['user_id']}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY))
-        return JSONResponse(
-            content={
-                "access_token": new_access_token
-            },
-            status_code=status.HTTP_200_OK
-        )
-    raise InvalidToken()
+    result = await service.refresh_access_token(token_details)
+    return result
 
 
 @router.get('/me', response_model=User, status_code=status.HTTP_200_OK)
@@ -213,8 +201,8 @@ async def send_mail(
     email_addresses = emails.adresses
     html = "<h1>Welcome to the app.</h1>"
     subject = "Welcome"
-    # send_email.delay(email_addresses, subject, html)
-    await send_email(email_addresses, subject, html)
+    send_email.delay(email_addresses, subject, html)
+    # await send_email(email_addresses, subject, html)
     return {"message": "Email has been sent succesfully."}
 
 
@@ -222,12 +210,10 @@ async def send_mail(
 async def keep_database_active(session: AsyncSession = Depends(db.get_session)):
     """
     This endpoint performs a simple query to keep the Neon database active.
-    It returns a 200 status code if the connection is successful.
     """
     from sqlmodel import select
     from fastapi import HTTPException
     try:
-        # A simple query that doesn't modify data, just to prove a connection is live.
         await session.exec(select(1))
         return {"status": "Database is active"}
     except Exception as e:
@@ -238,7 +224,7 @@ async def keep_database_active(session: AsyncSession = Depends(db.get_session)):
 async def start_long_task(payload: WebhookPayload):
     '''
     Just a test endpoint. I call this from Insomnia.
-    In a real case scenario, a real endpoint would call long_task directly
+    In a real case scenario, a real endpoint would call long_task() function directly
     '''
     long_task.delay(payload.webhook_url)
     return {"message": "Task started"}

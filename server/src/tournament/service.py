@@ -48,6 +48,7 @@ def get_full_tournament_data(t: Tournament):
         data["rounds"].append(round_data)
     return data
 
+
 def berger_table_pairings(player_ids, double_round_robin=False):
     n_players = len(player_ids)
     rounds = []

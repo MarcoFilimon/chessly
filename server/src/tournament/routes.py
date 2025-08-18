@@ -73,14 +73,13 @@ async def fetch_tournaments(
     """
     user_id = int(token_details["user_id"]) # get current user id from token
     cache_key = f"user:{user_id}:tournaments:{status}"
+
     # Try from redis cache
     cached = await redis_client.get(cache_key) # this returns a list of byte objects
     if cached is not None and len(cached) != 0:
-    # if False:
+    # if False: #? manually disable caching.
         cached_string = cached.decode("utf-8") # decode the bytes object to a uft-8 string
-
-        # json.loads() returns a list of dictionaries
-        tournaments_data = json.loads(cached_string)
+        tournaments_data = json.loads(cached_string) # list of dict
         if tournaments_data:
             tournaments = [Tournament.model_validate(t) for t in tournaments_data]
             return tournaments

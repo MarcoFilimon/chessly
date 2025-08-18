@@ -3,7 +3,6 @@ import sqlalchemy.dialects.postgresql as pg
 import sqlalchemy as sa
 from datetime import datetime, date
 from src.utils.enums import *
-import uuid
 
 class User(SQLModel, table=True):
     __tablename__ = "users"

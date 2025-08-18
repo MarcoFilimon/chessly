@@ -20,8 +20,8 @@ class UserService:
         """
         emails = [user.email]
         subject = "Verify Your email"
-        # send_email.delay(emails, subject, html)
-        await send_email(emails, subject, html)
+        send_email.delay(emails, subject, html)
+        # await send_email(emails, subject, html)
 
     async def get_user(self, user_id: int, session: AsyncSession):
         user = await session.get(User, user_id)
@@ -137,7 +137,20 @@ class UserService:
         emails = [payload.email]
         subject = "Reset your password"
 
-        # send_email.delay(emails, subject, html)
-        send_email(emails, subject, html)
+        send_email.delay(emails, subject, html)
+        # send_email(emails, subject, html)
         return
 
+
+    async def refresh_access_token(self, token_details: dict):
+        expiry_timestamp = token_details["exp"]
+        # If refresh token NOT expired (its datetime is higher than the current datetime) -> generate new access token
+        if datetime.fromtimestamp(expiry_timestamp) > datetime.now():
+            new_access_token = create_token({"username": token_details['username'], "role": token_details['role'], "user_id": token_details['user_id']}, expiry=timedelta(hours=Config.ACCESS_TOKEN_EXPIRY))
+            return JSONResponse(
+                content={
+                    "access_token": new_access_token
+                },
+                status_code=status.HTTP_200_OK
+            )
+        raise InvalidToken()

@@ -29,11 +29,13 @@ def register_middleware(app: FastAPI):
         # logger.info(message)
         return response
 
+    # Cross Origin Resource Sharing - situations when a frontend is runnning in a browser has JS code that communicated with a backend, and the
+    # backend is in a different "origin" than the frontend
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
             "https://chessly-lichess.netlify.app",
-            "http://localhost:5173",  # or your local dev port
+            "http://localhost:5173",
         ],
         allow_methods=["*"],
         allow_headers=["*"],
