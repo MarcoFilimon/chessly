@@ -1,7 +1,13 @@
 # Chessly
 
+[Live Website](https://chessly-lichess.netlify.app/)
+
 Chessly is a chess utility web app integrated with the [Lichess API](https://lichess.org/api#section/Introduction).
 Users can create and track their own tournaments, play chess games, and manage their chess activities—all in one place.
+
+## Demo Video
+
+[![Demo Video](./client/public/img/readme_pics/frontpage.png)](https://www.youtube.com/watch?v=Twg_43ksTik)
 
 ---
 
@@ -15,14 +21,21 @@ Users can create and track their own tournaments, play chess games, and manage t
 
 ---
 
+## Pictures
+
+![Creat tournament view](./client/public/img/readme_pics/create_tournament.png)
+![Tournament view](./client/public/img/readme_pics/tournaments_view.png)
+![Results view](./client/public/img/readme_pics/results_view.png)
+![Game view](./client/public/img/readme_pics/game_view.png)
+
+---
+
 ## Tech Stack
 
 **Frontend:**
 - TypeScript
 - Tailwind CSS
 - Vite
-- chess.js
-- chessboard.js
 
 **Backend:**
 - Python
@@ -38,8 +51,8 @@ Users can create and track their own tournaments, play chess games, and manage t
 
 ## Documentation
 
-- [Swagger UI](http://localhost:8000/api/v1/docs)
-- [Redoc](http://localhost:8000/api/v1/redoc)
+- [Swagger UI](https://chessly-uamz.onrender.com/api/v1/docs)
+- [Redoc](https://chessly-uamz.onrender.com/api/v1/redoc)
 
 ---
 
@@ -114,6 +127,13 @@ Users can create and track their own tournaments, play chess games, and manage t
 ---
 
 ## Integrations
+
+### Lichess API
+
+To play chess games, you’ll need a Lichess account and a personal API access token.
+Generate your token here: [Lichess API Token Generator](https://lichess.org/account/oauth/token)
+
+After generating the token, copy it, navigate to your Chessly profile, paste it into the "Lichess Token" field, and update your profile.
 
 ### Discord Webhook Notifications
 

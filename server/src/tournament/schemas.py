@@ -6,7 +6,6 @@ class PlayerRead(BaseModel):
     id: int
     name: str
     rating: int
-    # Add other fields as needed
 
 class MatchupRead(BaseModel):
     id: int

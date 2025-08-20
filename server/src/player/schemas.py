@@ -25,9 +25,6 @@ class PlayerValidatorMixin(BaseModel):
 class PlayerBase(PlayerValidatorMixin):
     name: str
     rating: int
-    # country: str = Field(min_length=3, max_length=25)
-    # age: int
-    # title: str
 
 
 class PlayerCreate(PlayerBase):
@@ -37,9 +34,6 @@ class PlayerCreate(PlayerBase):
 class PlayerUpdate(PlayerValidatorMixin):
     name: str | None = Field(default=None)
     rating: int | None = Field(default=None)
-    # country: str | None = Field(default=None, min_length=3, max_length=25)
-    # age: int | None = Field(default=None)
-    # title: str | None = Field(default=None)
 
 
 class Player(PlayerBase):

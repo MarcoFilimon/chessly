@@ -42,7 +42,6 @@ class UserUpdate(UserValidatorMixin):
 
 class User(UserBase):
     id: int
-    # tournaments: list[Tournament] | None = None
     is_verified: bool
     created_at: datetime
 

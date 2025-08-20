@@ -151,7 +151,7 @@ async def stream_moves(gameId: str, sse_token: str = Query(...),  session: Async
                         while '\n' in buffer:
                             line, buffer = buffer.split('\n', 1)
                             if line.strip():
-                                # print("Sending SSE line:", line.strip())  # <--- Add this
+                                # print("Sending SSE line:", line.strip())  # for debug
                                 yield f"data: {line.strip()}\n\n"
                         # await asyncio.sleep(0.01)
         except httpx.TimeoutException:
