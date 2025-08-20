@@ -1,6 +1,7 @@
 # Chessly
 
 [Live Website](https://chessly-lichess.netlify.app/)
+> **Note:** Due to the limitations of the free Render service used to host the server, you might occasionally experience issues accessing or using Chessly.
 
 Chessly is a chess utility web app integrated with the [Lichess API](https://lichess.org/api#section/Introduction).
 Users can create and track their own tournaments, play chess games, and manage their chess activities—all in one place.
